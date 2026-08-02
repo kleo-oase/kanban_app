@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kanban</title>
+  <meta name="theme-color" content="#1a1f2a">
+  <meta name="description" content="A kanban board stored as Markdown files in your own git repository.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🗂️</span>
+      <button id="board-btn" class="board-btn" type="button"></button>
+      <span id="demo-badge" class="badge" hidden>Demo</span>
+    </div>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="board">Listen</button>
+      <button class="tab" data-view="calendar">Kalender</button>
+    </nav>
+
+    <div class="top-actions">
+      <button id="filter-btn" class="icon-btn" type="button" title="Filter">⧩</button>
+      <button id="sort-btn" class="icon-btn" type="button" title="Sortierung">↕</button>
+      <button id="search-btn" class="icon-btn" type="button" title="Suche">🔍</button>
+      <span id="sync-dot" class="sync-dot" hidden></span>
+      <button id="save-btn" class="btn primary" type="button" disabled>Speichern</button>
+      <button id="lang-btn" class="icon-btn lang" type="button" title="Sprache">DE</button>
+      <button id="help-btn" class="icon-btn" type="button" title="Hilfe">?</button>
+      <button id="settings-btn" class="icon-btn" type="button" title="Einstellungen">⚙</button>
+    </div>
+  </header>
+
+  <div id="search-row" class="search-row" hidden>
+    <input type="search" autocomplete="off" placeholder="Suchen…">
+    <span class="search-count"></span>
+    <button class="icon-btn search-clear" type="button" title="Suche zurücksetzen">✕</button>
+  </div>
+
+  <div id="banner" hidden></div>
+
+  <section id="welcome" class="welcome" hidden></section>
+
+  <main id="main">
+    <section id="view-board" class="view"></section>
+    <section id="view-calendar" class="view" hidden></section>
+  </main>
+
+  <div id="toasts"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
