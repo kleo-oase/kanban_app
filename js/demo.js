@@ -3,10 +3,12 @@
 //
 // The dates are generated relative to today so the demo always looks current.
 
-import { todayStr, addDays, startOfWeek } from './util.js';
+import { todayStr, addDays } from './util.js';
 
-const mon = startOfWeek(todayStr());
-const d = n => addDays(mon, n);
+// Offsets from *today*, not from the start of the week: the sample board then
+// shows an overdue card (red) and one due today (yellow) whatever day it is
+// opened on.
+const d = n => addDays(todayStr(), n);
 const stamp = n => `${addDays(todayStr(), -n)}T09:12:00Z`;
 
 const card = (fm, body = '') => `---\n${fm.filter(Boolean).join('\n')}\n---\n${body ? '\n' + body + '\n' : ''}`;
@@ -37,11 +39,15 @@ lists:
   - id: thu
   - id: fri
   - id: sat
+    color: "#8a93a6"
   - id: sun
+    color: "#8a93a6"
   - id: l-backlog
     name: Backlog
+    color: "#4f8cff"
   - id: l-ideen
     name: Ideen
+    color: "#8b5cf6"
 `,
 
   'data/cards/zahnarzt-frau-berger-a1b2.md': card([
@@ -58,7 +64,7 @@ lists:
   'data/cards/angebot-schicken-c3d4.md': card([
     'title: Angebot schicken',
     'type: todo',
-    `date: ${d(1)}`,
+    `date: ${d(0)}`,
     'urgency: tomorrow',
     'client: Schmidt & Co.',
     `created: ${stamp(5)}`,
@@ -68,17 +74,27 @@ lists:
   'data/cards/team-jour-fixe-e5f6.md': card([
     'title: Team-Jour-fixe',
     'type: date',
-    `date: ${d(2)}`,
+    `date: ${d(1)}`,
     'time: "10:00"',
     'repeat: weekly',
     `created: ${stamp(30)}`,
     'author: Chris',
   ], 'Jede Woche, 30 Minuten. Agenda in der Kommentarspalte.'),
 
+  'data/cards/mahnung-nachfassen-w3x4.md': card([
+    'title: Mahnung nachfassen',
+    'type: todo',
+    `date: ${d(-3)}`,
+    'urgency: today',
+    'client: Schmidt & Co.',
+    `created: ${stamp(10)}`,
+    'author: Bea',
+  ], 'Ist seit drei Tagen offen.'),
+
   'data/cards/rechnungen-prufen-g7h8.md': card([
     'title: Rechnungen prüfen',
     'type: todo',
-    `date: ${d(3)}`,
+    `date: ${d(2)}`,
     'urgency: later',
     `created: ${stamp(4)}`,
     'author: Anna',
@@ -97,7 +113,8 @@ lists:
   'data/cards/inventur-vorbereiten-k1l2.md': card([
     'title: Inventur vorbereiten',
     'type: info',
-    `date: ${d(5)}`,
+    'list: l-backlog',
+    'pinned: true',
     `created: ${stamp(9)}`,
     'author: Chris',
   ], 'Listen liegen im Lager, Etiketten sind bestellt.'),
@@ -115,7 +132,7 @@ lists:
   'data/cards/altpapier-rausbringen-o5p6.md': card([
     'title: Altpapier rausbringen',
     'type: todo',
-    `date: ${d(0)}`,
+    `date: ${d(-2)}`,
     'done: true',
     `created: ${stamp(7)}`,
     'author: Chris',
@@ -146,6 +163,25 @@ lists:
     `created: ${stamp(45)}`,
     'author: Chris',
   ], 'Idee: kleine Hausmesse mit den drei wichtigsten Kunden.'),
+
+  'data/cards/sommerfest-organisieren-y5z6.md': card([
+    'title: Sommerfest organisieren',
+    'type: todo',
+    `date: ${d(-40)}`,
+    'done: true',
+    `archived: ${d(-30)}T16:00:00Z`,
+    `created: ${stamp(90)}`,
+    'author: Anna',
+  ], 'War ein voller Erfolg — Fotos liegen im Ordner *Team*.'),
+
+  'data/cards/alte-preisliste-a7b8.md': card([
+    'title: Alte Preisliste ablegen',
+    'type: info',
+    'list: l-backlog',
+    `archived: ${d(-12)}T09:20:00Z`,
+    `created: ${stamp(120)}`,
+    'author: Chris',
+  ], 'Ersetzt durch die Fassung vom Frühjahr.'),
 
   'data/comments/team-jour-fixe-e5f6/c-aa11.md':
     `---\nauthor: Anna\ncreated: ${stamp(2)}\n---\n\nDiese Woche bitte das Thema Urlaubsplanung aufnehmen.\n`,

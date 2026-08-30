@@ -4,6 +4,7 @@
 import { store, loadProjects, PROJECTS_KEY, ACTIVE_KEY } from './store.js';
 import { board } from './board.js';
 import { calendar } from './calendar.js';
+import { archive } from './archive.js';
 import { initToolbar } from './toolbar.js';
 import { initSettings, openSettings } from './settings.js';
 import { initHelp } from './help.js';
@@ -13,7 +14,7 @@ import { t, lang, setLang, LANGS } from './i18n.js';
 import { APP_VERSION, CHANGELOG_URL } from './version.js';
 import { b64DecodeUtf8, lsGet, lsSet, uid, esc } from './util.js';
 
-const views = { board, calendar };
+const views = { board, calendar, archive };
 let active = 'board';
 
 // ---------- invite link (#setup=…) — adds a board, before the store boots ----------
@@ -113,6 +114,7 @@ function updateBanner() {
 function relabel() {
   document.querySelector('.tab[data-view="board"]').textContent = t('nav.board');
   document.querySelector('.tab[data-view="calendar"]').textContent = t('nav.calendar');
+  document.querySelector('.tab[data-view="archive"]').textContent = t('nav.archive');
   const set = (id, key) => {
     const el = document.getElementById(id);
     el.title = t(key);
@@ -160,6 +162,7 @@ function boot() {
   initToolbar();
   board.init(document.getElementById('view-board'));
   calendar.init(document.getElementById('view-calendar'));
+  archive.init(document.getElementById('view-archive'));
   initProjects();
 
   document.getElementById('tabs').addEventListener('click', e => {

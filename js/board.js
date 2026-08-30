@@ -6,7 +6,7 @@
 // they cannot be reordered by hand, by design.
 
 import { store } from './store.js';
-import { cardsForList, listOf } from './query.js';
+import { cardsForList, listOf, dueStatus } from './query.js';
 import { openCard, createCard } from './card.js';
 import { openMenu, confirmDialog, draggable, toast, closeMenu } from './ui.js';
 import { t, weekdayName, fmtDate } from './i18n.js';
@@ -22,9 +22,12 @@ let dragEndedAt = 0;   // a pointerup that ended a drag must not open the card
 // ---------- card chip ----------
 
 export function cardChipHtml(card) {
+  const due = dueStatus(card);
   const cls = [
     'kcard', 't-' + card.type,
     card.urgency ? 'u-' + card.urgency : '',
+    due ? 'due-' + due : '',
+    card.pinned ? 'pinned' : '',
     card.type === 'todo' && card.done ? 'done' : '',
   ].filter(Boolean).join(' ');
 
@@ -44,7 +47,8 @@ export function cardChipHtml(card) {
 
   return `<article class="${cls}" data-id="${esc(card.id)}" tabindex="0"
             style="--c:${esc(card.client ? store.clientColor(card.client) : 'transparent')}">
-    <div class="kcard-title">${card.type === 'todo' ? `<span class="tick">${card.done ? '☑' : '☐'}</span>` : ''}${esc(card.title || '—')}</div>
+    <div class="kcard-title">${card.pinned ? '<span class="pin">📌</span>' : ''}${
+      card.type === 'todo' ? `<span class="tick">${card.done ? '☑' : '☐'}</span>` : ''}${esc(card.title || '—')}</div>
     <div class="kcard-meta">${meta.join('')}</div>
   </article>`;
 }
@@ -56,11 +60,12 @@ function columnHtml(list) {
   const cards = cardsForList(list.id);
   const isToday = isWeekday && list.id === weekdayId(todayStr());
   return `
-  <section class="col${isWeekday ? ' col-weekday' : ' col-custom'}${isToday ? ' col-today' : ''}" data-id="${esc(list.id)}">
+  <section class="col${isWeekday ? ' col-weekday' : ' col-custom'}${isToday ? ' col-today' : ''}${list.color ? ' col-colored' : ''}"
+           data-id="${esc(list.id)}"${list.color ? ` style="--lc:${esc(list.color)}"` : ''}>
     <header class="col-head">
       <h2>${esc(isWeekday ? weekdayName(list.id) : list.name)}</h2>
       <span class="count">${cards.length}</span>
-      ${isWeekday ? '' : '<button class="icon-btn col-menu" aria-label="⋯">⋯</button>'}
+      <button class="icon-btn col-menu" aria-label="⋯">⋯</button>
     </header>
     <div class="col-cards">
       ${cards.length ? cards.map(cardChipHtml).join('') : `<p class="col-empty">${esc(t('board.empty'))}</p>`}
@@ -139,19 +144,47 @@ function prefillFor(listId) {
   return { date: target < today ? addDays(target, 7) : target };
 }
 
+// Colour codes for the columns. Any hex works — these are just the one-click
+// choices; the last swatch opens the system colour picker.
+const LIST_COLORS = [
+  '#e05252', '#e8a33d', '#f2d045', '#3aa76d',
+  '#4f8cff', '#8b5cf6', '#e879a0', '#8a93a6',
+];
+
 function openColMenu(btn) {
   const col = btn.closest('.col');
   const id = col.dataset.id;
+  const isWeekday = WEEKDAY_IDS.includes(id);
   openMenu(btn, close => {
+    const current = store.listColor(id);
     const el = document.createElement('div');
     el.innerHTML = `
-      <button class="menu-item m-rename">${esc(t('board.rename_list'))}</button>
-      <button class="menu-item danger m-delete">${esc(t('board.delete_list'))}</button>`;
-    el.querySelector('.m-rename').addEventListener('click', () => {
+      <div class="menu-group">
+        <h4>${esc(t('board.list_color'))}</h4>
+        <div class="swatches">
+          ${LIST_COLORS.map(c => `<button class="swatch${c === current ? ' on' : ''}" data-c="${c}"
+              style="background:${c}" aria-label="${c}"></button>`).join('')}
+          <label class="swatch swatch-custom" aria-label="${esc(t('board.list_color'))}">
+            <input type="color" value="${esc(current || '#4f8cff')}">
+          </label>
+        </div>
+        <button class="menu-item m-nocolor${current ? '' : ' on'}">${esc(t('board.color_none'))}</button>
+      </div>
+      ${isWeekday ? '' : `
+        <button class="menu-item m-rename">${esc(t('board.rename_list'))}</button>
+        <button class="menu-item danger m-delete">${esc(t('board.delete_list'))}</button>`}`;
+
+    el.querySelectorAll('.swatch[data-c]').forEach(b => {
+      b.addEventListener('click', () => { store.setListColor(id, b.dataset.c); close(); });
+    });
+    el.querySelector('.swatch-custom input').addEventListener('input', e => store.setListColor(id, e.target.value));
+    el.querySelector('.m-nocolor').addEventListener('click', () => { store.setListColor(id, ''); close(); });
+
+    el.querySelector('.m-rename')?.addEventListener('click', () => {
       close();
       startRename(col, id);
     });
-    el.querySelector('.m-delete').addEventListener('click', async () => {
+    el.querySelector('.m-delete')?.addEventListener('click', async () => {
       close();
       if (store.customLists().length <= 1) { toast(t('board.delete_list_last'), 'err'); return; }
       const n = Object.values(store.cards).filter(c => !c.date && listOf(c) === id).length;

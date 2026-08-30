@@ -6,16 +6,21 @@ one commit there.
 
 - **Lists** — seven built-in weekday columns (a card with a delivery date lands
   in the column of its weekday) plus your own lists for cards without a date.
-  Columns are reordered by dragging; cards are moved by dragging.
-- **Calendar** — month grid, seven weekday columns, one row per calendar week
-  with the ISO week number. Appointments appear on every occurrence of a
-  repetition, colored by client.
+  Columns are reordered by dragging and can carry a colour code; cards are moved
+  by dragging. Overdue to-dos are red, to-dos due today yellow.
+- **Calendar** — month, week or day. The month grid has seven weekday columns
+  and one row per calendar week with the ISO week number. Appointments appear on
+  every occurrence of a repetition, coloured by client.
+- **Archive** — cards taken off the board, grouped by the month they were due.
+  Reactivating restores a card exactly as it was; the archive can also be
+  emptied in one go.
 
 A card has a title, a delivery date (mandatory unless "no date" is ticked) with
 optional time and repetition, three labels — category (*appointment / info /
 to-do*), urgency (*must be today / can wait until tomorrow / no rush*) and
 client — free Markdown text, the creation date, the employee who created it, and
-comments. To-do cards can be ticked as completed.
+comments. To-do cards can be ticked as completed. Info cards are notes: no date,
+no urgency, and they can be pinned to the top of their list.
 
 Filter, sort and search are in the top bar; the interface is available in
 **German and English**.

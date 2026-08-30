@@ -88,10 +88,13 @@ const keyFor = (card, by) => {
   }
 };
 
-// Completed to-dos always sink to the bottom, whatever the sort key is.
+// Pinned info cards stay at the top and completed to-dos sink to the bottom,
+// whatever the sort key is.
 export function sortCards(cards, by = store.view.sort, dir = store.view.sortDir) {
   const sign = dir === 'desc' ? -1 : 1;
   return cards.slice().sort((a, b) => {
+    const pa = a.pinned ? 0 : 1, pb = b.pinned ? 0 : 1;
+    if (pa !== pb) return pa - pb;
     const da = a.type === 'todo' && a.done ? 1 : 0;
     const db = b.type === 'todo' && b.done ? 1 : 0;
     if (da !== db) return da - db;
@@ -108,9 +111,48 @@ export function sortCards(cards, by = store.view.sort, dir = store.view.sortDir)
 
 // ---------- what each view asks for ----------
 
-export const allCards = () => Object.values(store.cards);
+// Everything outside the archive. The archive has its own view and is never
+// mixed into the board, the calendar, the filter counts or the search.
+export const allCards = () => Object.values(store.cards).filter(c => !c.archived);
 
 export const visibleCards = () => allCards().filter(passesFilter);
+
+// Archived cards, grouped by the month they were due, newest first; cards
+// without a date come last. That is what "nach Fälligkeit" asks for and it
+// keeps a long archive scannable.
+export function archiveGroups() {
+  const cards = store.archivedCards().filter(c => matchesSearch(c, store.view.search));
+  const groups = new Map();
+  for (const c of cards) {
+    const d = effectiveDate(c) || c.date;
+    const key = d ? d.slice(0, 7) : '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  }
+  const keys = [...groups.keys()].sort().reverse();
+  if (groups.has('')) keys.splice(keys.indexOf(''), 1), keys.push('');   // undated last
+  return keys.map(key => ({
+    key,
+    cards: groups.get(key).sort((a, b) => {
+      const da = a.date || '', db = b.date || '';
+      if (da !== db) return da < db ? 1 : -1;
+      return (a.title || '').localeCompare(b.title || '');
+    }),
+  }));
+}
+
+// Colour code for a to-do in the list view: overdue is red, due today yellow.
+// Completed and archived cards are never flagged. The board renders the result
+// as the class `due-<status>`, so keep the values bare.
+export function dueStatus(card) {
+  if (card.type !== 'todo' || card.done || card.archived) return '';
+  const d = effectiveDate(card);
+  if (!d) return '';
+  const today = todayStr();
+  if (d < today) return 'overdue';
+  if (d === today) return 'today';
+  return '';
+}
 
 export function cardsForList(listId) {
   const wanted = visibleCards().filter(c => (

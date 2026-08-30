@@ -13,11 +13,11 @@ import { GitHubClient, GHError } from './github.js';
 import { DEMO_FILES } from './demo.js';
 import { FORMAT_VERSION } from './version.js';
 import {
-  CARD_DIR, COMMENT_DIR, CONFIG_PATH, WEEKDAY_IDS,
+  CARD_DIR, COMMENT_DIR, CONFIG_PATH, WEEKDAY_IDS, COLOR_RE,
   FALLBACK_CLIENT_COLORS, NO_CLIENT_COLOR,
   parseCardFile, serializeCard, cardPath,
   parseCommentFile, serializeComment, commentPath, commentKey,
-  parseConfig, serializeConfig, emptyConfig, emptyCard,
+  parseConfig, serializeConfig, emptyConfig, emptyCard, normalizeCard,
   slugify, uid, isoNow, lsGet, lsSet, lsDel, debounce,
 } from './util.js';
 
@@ -38,7 +38,8 @@ export const DEFAULT_VIEW = {
   range: 'all',
   hideDone: false,
   calAllTypes: false,
-  calMonth: null,     // YYYY-MM-01, null = current month
+  calMode: 'month',   // month | week | day
+  calAnchor: null,    // any date inside the shown period; null = today
 };
 
 // Returns the board list. Exported so the invite-link import (which runs before
@@ -328,7 +329,7 @@ export const store = {
     const mk = () => `${slugify(title) || 'card'}-${uid().slice(0, 4)}`;
     let id = mk();
     while (this.cards[id] || this.base.cards[id]) id = mk();
-    const card = { ...emptyCard(id), created: isoNow(), ...props, id };
+    const card = normalizeCard({ ...emptyCard(id), created: isoNow(), ...props, id });
     this.cards[id] = card;
     this.touch();
     return card;
@@ -338,9 +339,7 @@ export const store = {
     const c = this.cards[id];
     if (!c) return;
     Object.assign(c, patch);
-    if (c.date) c.list = null; else c.repeat = c.until = c.time = null;
-    if (c.type !== 'todo') c.done = false;
-    if (!c.repeat) c.until = null;
+    normalizeCard(c);
     this.touch(source);
   },
 
@@ -350,6 +349,46 @@ export const store = {
       if (this.comments[k].cardId === id) delete this.comments[k];
     }
     this.touch();
+  },
+
+  // ----- archive -----
+  // Archiving only sets a timestamp: the file stays where it is, so bringing a
+  // card back is exact and costs no history. Emptying the archive is the one
+  // operation that actually deletes files.
+
+  archiveCard(id) {
+    const c = this.cards[id];
+    if (!c || c.archived) return;
+    c.archived = isoNow();
+    this.touch();
+  },
+
+  unarchiveCard(id) {
+    const c = this.cards[id];
+    if (!c || !c.archived) return;
+    c.archived = null;
+    normalizeCard(c);
+    // a card that lost its list while it was archived must land somewhere
+    if (!c.date && !this.config.lists.some(l => l.id === c.list)) {
+      c.list = this.customLists()[0]?.id || null;
+    }
+    this.touch();
+  },
+
+  archivedCards() {
+    return Object.values(this.cards).filter(c => c.archived);
+  },
+
+  emptyArchive() {
+    const gone = this.archivedCards().map(c => c.id);
+    for (const id of gone) {
+      delete this.cards[id];
+      for (const k of Object.keys(this.comments)) {
+        if (this.comments[k].cardId === id) delete this.comments[k];
+      }
+    }
+    if (gone.length) this.touch();
+    return gone.length;
   },
 
   addComment(cardId, text, author) {
@@ -453,6 +492,17 @@ export const store = {
     this.touch();
   },
 
+  // Colour codes work for the weekday columns too, so this one is not
+  // restricted to custom lists. An empty string clears the colour.
+  setListColor(id, color) {
+    const l = this.config.lists.find(x => x.id === id);
+    if (!l) return;
+    l.color = COLOR_RE.test(String(color || '')) ? String(color).toLowerCase() : '';
+    this.touch();
+  },
+
+  listColor(id) { return this.config.lists.find(l => l.id === id)?.color || ''; },
+
   // Cards in a deleted list are never lost — they move to the first remaining
   // custom list (there is always at least one, the UI refuses otherwise).
   deleteList(id) {
@@ -550,7 +600,7 @@ export const store = {
     const eq = (a, b) => (a ?? null) === (b ?? null);
     const sameCard = (a, b) => serializeCard(a) === serializeCard(b);
     const FIELDS = ['title', 'type', 'date', 'time', 'list', 'urgency', 'client',
-      'repeat', 'until', 'done', 'created', 'author', 'body'];
+      'repeat', 'until', 'done', 'pinned', 'archived', 'created', 'author', 'body'];
 
     const mergedCards = {};
     const ids = new Set([
@@ -623,7 +673,7 @@ export const store = {
     const clients = mergeKeyedList(fc.clients, this.config.clients, newBase.config.clients,
       c => c.name, ['color'], conflict);
     const lists = mergeKeyedList(fc.lists, this.config.lists, newBase.config.lists,
-      l => l.id, ['name'], conflict);
+      l => l.id, ['name', 'color'], conflict);
 
     let name = this.config.name || '';
     const rn = newBase.config.name || '', fn = fc.name || '';

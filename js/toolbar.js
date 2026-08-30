@@ -70,8 +70,8 @@ function filterMenu(anchor) {
       box.addEventListener('change', () => store.setView({ [box.value]: box.checked }));
     });
     el.querySelector('.f-reset').addEventListener('click', () => {
-      const { calMonth, search } = store.view;
-      store.setView({ ...DEFAULT_VIEW, calMonth, search, sort: store.view.sort, sortDir: store.view.sortDir });
+      const { calMode, calAnchor, search, sort, sortDir } = store.view;
+      store.setView({ ...DEFAULT_VIEW, calMode, calAnchor, search, sort, sortDir });
       el.querySelectorAll('input[type=checkbox]').forEach(b => { b.checked = false; });
       el.querySelector('[data-group="range"] input[value="all"]').checked = true;
     });

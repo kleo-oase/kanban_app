@@ -19,17 +19,37 @@ const EN = `
 </section>
 
 <section>
-  <h3>The two views</h3>
+  <h3>The three pages</h3>
   <ul>
     <li><b>Lists</b> — the main view. The seven weekday columns are built in:
       a card with a delivery date automatically sits in the column of that
       weekday, whatever week the date is in. The columns to the right are your
       own lists and hold the cards <i>without</i> a date.</li>
-    <li><b>Calendar</b> — a month grid, seven weekday columns and one row per
-      calendar week (the ISO week number is in the left gutter). By default only
+    <li><b>Calendar</b> — switchable between <b>month</b>, <b>week</b> and
+      <b>day</b>. The month grid has seven weekday columns and one row per
+      calendar week (the ISO week number is in the left gutter); week and day
+      give each date a tall column with room for the client name. ‹ and ›
+      move by one month, week or day accordingly. By default only
       <i>appointments</i> appear here; the Filter menu can add info and to-do
       cards. Repeating cards show up on every occurrence. Double-click a day to
       create a card on it.</li>
+    <li><b>Archive</b> — cards you have put aside. See below.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>Colour codes</h3>
+  <ul>
+    <li><b>Overdue to-dos are red, to-dos due today are yellow</b> — automatic,
+      nothing to set. Completed to-dos are never coloured, and appointments are
+      not either (their date is a fact, not a deadline).</li>
+    <li><b>Every list can have a colour</b>: the ⋯ menu on a column header
+      offers eight preset colours, a free colour picker, and "No colour". The
+      colour appears as a bar above the heading and as a light wash behind the
+      column, so a colour-coded board stays readable. The seven weekday columns
+      can be coloured too.</li>
+    <li>The <b>client colour</b> stays where it was: a stripe on the left edge
+      of the card and a dot in the calendar.</li>
   </ul>
 </section>
 
@@ -49,6 +69,11 @@ const EN = `
       can wait until tomorrow / no rush) and the <b>client</b>. Clients are
       defined in the settings and each has a color; that color is what you see
       next to the card title in the calendar.</li>
+    <li><b>Info cards are notes</b>: they have no date and no urgency at all.
+      They live in one of your own lists and can be <b>pinned</b>, which keeps
+      them at the top of that list no matter how the board is sorted. Switching
+      a card to Info therefore removes its date; switching it back lets you set
+      one again.</li>
     <li>Cards of category <b>to-do</b> can be ticked <b>Completed</b>. They stay
       where they are, struck through and sorted last; the Filter menu can hide
       them.</li>
@@ -56,6 +81,25 @@ const EN = `
       it in its own week and only changes the weekday; dropping it on one of
       your own lists removes the date.</li>
     <li>Drag a column header sideways to reorder the columns.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>Archive</h3>
+  <p>Every card has an <b>Archive</b> button in its editor. Archiving takes the
+  card off the board and out of the calendar without deleting anything — the
+  file stays in the repository exactly as it was.</p>
+  <ul>
+    <li>The <b>Archive</b> page lists everything you have put aside, grouped by
+      the month the card was due, newest first; cards without a date come last.</li>
+    <li><b>Reactivate</b> puts a card back exactly as it was — same date, same
+      labels, same comments. Nothing has to be typed again because something was
+      archived by mistake.</li>
+    <li><b>Delete permanently</b> removes a single card, and <b>Empty the
+      archive</b> removes all of them at once, together with their comments.
+      Those two are the only actions in the app that really delete data, so both
+      ask first. Everything they remove is of course still in the git history.</li>
+    <li>The search box also searches the archive while you are on that page.</li>
   </ul>
 </section>
 
@@ -172,18 +216,38 @@ const DE = `
 </section>
 
 <section>
-  <h3>Die zwei Ansichten</h3>
+  <h3>Die drei Seiten</h3>
   <ul>
     <li><b>Listen</b> — die Hauptansicht. Die sieben Wochentagsspalten sind fest
       eingebaut: eine Karte mit Termindatum landet automatisch in der Spalte
       ihres Wochentags, egal in welcher Woche das Datum liegt. Die Spalten
       rechts davon sind deine eigenen Listen und enthalten die Karten
       <i>ohne</i> Datum.</li>
-    <li><b>Kalender</b> — ein Monatsraster mit sieben Wochentagsspalten und
-      einer Zeile pro Kalenderwoche (die KW steht links). Standardmäßig werden
-      hier nur <i>Termine</i> angezeigt; im Filter kannst du Info- und
+    <li><b>Kalender</b> — umschaltbar zwischen <b>Monat</b>, <b>Woche</b> und
+      <b>Tag</b>. Das Monatsraster hat sieben Wochentagsspalten und eine Zeile
+      pro Kalenderwoche (die KW steht links); Woche und Tag geben jedem Datum
+      eine hohe Spalte mit Platz für den Kundennamen. ‹ und › springen
+      entsprechend um einen Monat, eine Woche oder einen Tag. Standardmäßig
+      werden hier nur <i>Termine</i> angezeigt; im Filter kannst du Info- und
       To-do-Karten dazunehmen. Wiederkehrende Karten erscheinen an jedem ihrer
       Termine. Doppelklick auf einen Tag legt dort eine Karte an.</li>
+    <li><b>Archiv</b> — beiseitegelegte Karten. Siehe unten.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>Farbcodes</h3>
+  <ul>
+    <li><b>Überfällige To-dos sind rot, heute fällige gelb</b> — automatisch,
+      da ist nichts einzustellen. Erledigte To-dos werden nie eingefärbt,
+      Termine ebenfalls nicht (ihr Datum ist eine Tatsache, keine Frist).</li>
+    <li><b>Jede Liste kann eine Farbe bekommen</b>: das ⋯-Menü an der
+      Spaltenüberschrift bietet acht Farben, einen freien Farbwähler und
+      „Keine Farbe“. Die Farbe erscheint als Balken über der Überschrift und
+      als heller Hauch hinter der Spalte, damit ein farbcodiertes Board lesbar
+      bleibt. Auch die sieben Wochentagsspalten lassen sich einfärben.</li>
+    <li>Die <b>Kundenfarbe</b> bleibt, wo sie war: als Streifen am linken
+      Kartenrand und als Punkt im Kalender.</li>
   </ul>
 </section>
 
@@ -204,6 +268,11 @@ const DE = `
       notfalls morgen / kein Stress) und der <b>Kunde</b>. Kunden werden in den
       Einstellungen angelegt und haben je eine Farbe; genau diese Farbe steht im
       Kalender neben dem Kartentitel.</li>
+    <li><b>Info-Karten sind Notizen</b>: sie haben weder Datum noch
+      Dringlichkeit. Sie liegen in einer deiner eigenen Listen und lassen sich
+      <b>fixieren</b> — dann stehen sie immer oben in dieser Liste, egal wie
+      sortiert wird. Eine Karte auf Info umzustellen entfernt deshalb ihr
+      Datum; stellst du sie zurück, kannst du wieder eines setzen.</li>
     <li>Karten der Kategorie <b>To-do</b> lassen sich als <b>erledigt</b>
       abhaken. Sie bleiben, wo sie sind, werden durchgestrichen und nach hinten
       sortiert; im Filter kannst du sie ausblenden.</li>
@@ -211,6 +280,27 @@ const DE = `
       Wochentag abgelegt bleibt sie in ihrer Woche und wechselt nur den Tag; auf
       einer deiner eigenen Listen abgelegt verliert sie das Datum.</li>
     <li>Ziehe eine Spaltenüberschrift zur Seite, um die Spalten umzuordnen.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>Archiv</h3>
+  <p>Jede Karte hat in ihrem Editor eine Schaltfläche <b>Archivieren</b>. Damit
+  verschwindet sie aus dem Board und aus dem Kalender, ohne dass etwas gelöscht
+  wird — die Datei bleibt unverändert im Repository.</p>
+  <ul>
+    <li>Die Seite <b>Archiv</b> zeigt alles Beiseitegelegte, gruppiert nach dem
+      Fälligkeitsmonat, neueste zuerst; Karten ohne Datum stehen am Ende.</li>
+    <li><b>Reaktivieren</b> holt eine Karte genau so zurück, wie sie war —
+      gleiches Datum, gleiche Labels, gleiche Kommentare. Nichts muss neu
+      getippt werden, nur weil versehentlich archiviert wurde.</li>
+    <li><b>Endgültig löschen</b> entfernt eine einzelne Karte, <b>Archiv
+      leeren</b> alle auf einmal, jeweils samt Kommentaren. Das sind die
+      einzigen Aktionen der App, die wirklich Daten löschen — beide fragen
+      vorher nach. Was sie entfernen, steht natürlich weiterhin in der
+      Git-Historie.</li>
+    <li>Die Suche durchsucht auch das Archiv, solange du auf dieser Seite
+      bist.</li>
   </ul>
 </section>
 

@@ -121,8 +121,6 @@ const STRINGS = {
 
     'cal.today': 'Today',
     'cal.week_short': 'W',
-    'cal.prev': 'Previous month',
-    'cal.next': 'Next month',
     'cal.only_dates': 'Only appointments are shown. Change this in Filter.',
     'cal.more': '+{n} more',
 
@@ -235,6 +233,39 @@ const STRINGS = {
     'banner.no_repo': 'This board is missing its repository settings.',
     'banner.open_settings': 'Open settings',
     'banner.needs_token': 'This board’s data is in a private repository — an access token is needed to read it.',
+
+    'nav.archive': 'Archive',
+
+    'cal.mode.month': 'Month',
+    'cal.mode.week': 'Week',
+    'cal.mode.day': 'Day',
+    'cal.prev': 'Back',
+    'cal.next': 'Forward',
+    'cal.no_entries': 'nothing scheduled',
+    'cal.week_of': 'Week {n}',
+
+    'card.pin': 'Pin to the top',
+    'card.pin_hint': 'Pinned cards stay at the top of their list, whatever the sorting says.',
+    'card.info_hint': 'Info cards have no date and no urgency — they live in one of your lists.',
+    'card.archive': 'Archive',
+    'card.archived_on': 'Archived on {date}',
+
+    'archive.title': 'Archive',
+    'archive.lead': 'Cards you have put aside, grouped by the month they were due. Nothing here shows up on the board or in the calendar.',
+    'archive.empty': 'The archive is empty.',
+    'archive.nodate': 'Without a date',
+    'archive.restore': 'Reactivate',
+    'archive.delete': 'Delete permanently',
+    'archive.delete_confirm': 'Delete “{title}” and its comments for good? This cannot be undone.',
+    'archive.clear': 'Empty the archive',
+    'archive.clear_confirm': 'Delete all {n} archived card(s) and their comments for good? This cannot be undone — reactivate anything you still need first.',
+
+    'toast.card_archived': '“{title}” moved to the archive.',
+    'toast.card_restored': '“{title}” is back on the board.',
+    'toast.archive_cleared': '{n} card(s) deleted from the archive.',
+
+    'board.list_color': 'List colour',
+    'board.color_none': 'No colour',
 
     'err.network': 'No connection to GitHub (offline?).',
     'err.auth': 'GitHub rejected the access token. Check it in the settings.',
@@ -370,8 +401,6 @@ const STRINGS = {
 
     'cal.today': 'Heute',
     'cal.week_short': 'KW',
-    'cal.prev': 'Voriger Monat',
-    'cal.next': 'Nächster Monat',
     'cal.only_dates': 'Es werden nur Termine angezeigt. Im Filter änderbar.',
     'cal.more': '+{n} weitere',
 
@@ -485,6 +514,39 @@ const STRINGS = {
     'banner.open_settings': 'Einstellungen öffnen',
     'banner.needs_token': 'Die Daten dieses Boards liegen in einem privaten Repository — zum Lesen wird ein Token gebraucht.',
 
+    'nav.archive': 'Archiv',
+
+    'cal.mode.month': 'Monat',
+    'cal.mode.week': 'Woche',
+    'cal.mode.day': 'Tag',
+    'cal.prev': 'Zurück',
+    'cal.next': 'Weiter',
+    'cal.no_entries': 'nichts geplant',
+    'cal.week_of': 'KW {n}',
+
+    'card.pin': 'Oben fixieren',
+    'card.pin_hint': 'Fixierte Karten stehen immer ganz oben in ihrer Liste, egal wie sortiert wird.',
+    'card.info_hint': 'Info-Karten haben kein Datum und keine Dringlichkeit — sie liegen in einer deiner Listen.',
+    'card.archive': 'Archivieren',
+    'card.archived_on': 'Archiviert am {date}',
+
+    'archive.title': 'Archiv',
+    'archive.lead': 'Beiseitegelegte Karten, nach Fälligkeitsmonat gruppiert. Nichts davon erscheint im Board oder im Kalender.',
+    'archive.empty': 'Das Archiv ist leer.',
+    'archive.nodate': 'Ohne Datum',
+    'archive.restore': 'Reaktivieren',
+    'archive.delete': 'Endgültig löschen',
+    'archive.delete_confirm': '„{title}“ und die Kommentare endgültig löschen? Das lässt sich nicht rückgängig machen.',
+    'archive.clear': 'Archiv leeren',
+    'archive.clear_confirm': 'Alle {n} archivierten Karten samt Kommentaren endgültig löschen? Das lässt sich nicht rückgängig machen — reaktiviere vorher, was du noch brauchst.',
+
+    'toast.card_archived': '„{title}“ ins Archiv verschoben.',
+    'toast.card_restored': '„{title}“ ist wieder im Board.',
+    'toast.archive_cleared': '{n} Karte(n) aus dem Archiv gelöscht.',
+
+    'board.list_color': 'Farbe der Liste',
+    'board.color_none': 'Keine Farbe',
+
     'err.network': 'Keine Verbindung zu GitHub (offline?).',
     'err.auth': 'GitHub hat das Zugriffstoken abgelehnt. Bitte in den Einstellungen prüfen.',
     'err.not-found': 'Repository oder Branch nicht gefunden — Benutzer, Repository, Branch und Token-Zugriff prüfen.',
@@ -578,6 +640,11 @@ export function fmtStamp(iso) {
     }));
   }
   return fmtCache.get(key).format(d);
+}
+
+// "Mon 3 Aug" for the compact week-view column headings
+export function fmtDayShort(ds) {
+  return fmt({ weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(dateToUtc(ds)));
 }
 
 export const weekdayName = id => t('weekday.' + id);

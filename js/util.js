@@ -237,9 +237,11 @@ export function parseYamlBlocks(text) {
 }
 
 export const defaultLists = () => [
-  ...WEEKDAY_IDS.map(id => ({ id, name: '' })),
-  { id: 'l-backlog', name: 'Backlog' },
+  ...WEEKDAY_IDS.map(id => ({ id, name: '', color: '' })),
+  { id: 'l-backlog', name: 'Backlog', color: '' },
 ];
+
+export const COLOR_RE = /^#[0-9a-f]{6}$/i;
 
 export const emptyConfig = () => ({
   format: 1, name: '', employees: [], clients: [], lists: defaultLists(),
@@ -261,10 +263,14 @@ export function parseConfig(text) {
   const lists = (Array.isArray(raw.lists) ? raw.lists : [])
     .map(l => (typeof l === 'string' ? { id: l, name: '' } : l))
     .filter(l => l && typeof l === 'object' && l.id)
-    .map(l => ({ id: String(l.id), name: WEEKDAY_IDS.includes(String(l.id)) ? '' : String(l.name || l.id) }));
+    .map(l => ({
+      id: String(l.id),
+      name: WEEKDAY_IDS.includes(String(l.id)) ? '' : String(l.name || l.id),
+      color: COLOR_RE.test(String(l.color || '')) ? String(l.color).toLowerCase() : '',
+    }));
   // the seven weekday columns always exist; a config that omits them gets them back
   const have = new Set(lists.map(l => l.id));
-  const missing = WEEKDAY_IDS.filter(id => !have.has(id)).map(id => ({ id, name: '' }));
+  const missing = WEEKDAY_IDS.filter(id => !have.has(id)).map(id => ({ id, name: '', color: '' }));
   cfg.lists = missing.length && !lists.length ? defaultLists() : [...missing, ...lists];
   // de-duplicate ids, keep first occurrence
   const seen = new Set();
@@ -294,6 +300,7 @@ export function serializeConfig(cfg) {
   for (const l of cfg.lists) {
     L.push(`  - id: ${yamlScalar(l.id)}`);
     if (!WEEKDAY_IDS.includes(l.id) && l.name) L.push(`    name: ${yamlScalar(l.name)}`);
+    if (l.color) L.push(`    color: ${JSON.stringify(l.color)}`);
   }
   return L.join('\n') + '\n';
 }
@@ -323,8 +330,25 @@ export function emptyCard(id = '') {
   return {
     id, title: '', type: 'todo', date: null, time: null, list: null,
     urgency: null, client: null, repeat: null, until: null, done: false,
-    created: null, author: '', body: '',
+    pinned: false, archived: null, created: null, author: '', body: '',
   };
+}
+
+// `info` cards are notes, not scheduled work: they never carry a date, a time,
+// a repetition or an urgency, and they can be pinned to the top of their list
+// instead. Enforced in one place so hand-written files, the editor and the
+// merge all agree.
+export function normalizeCard(c) {
+  if (c.type === 'info') {
+    c.date = c.time = c.repeat = c.until = c.urgency = null;
+  } else {
+    c.pinned = false;
+    if (c.date) c.list = null;
+    else c.time = c.repeat = c.until = null;
+  }
+  if (!c.repeat) c.until = null;
+  if (c.type !== 'todo') c.done = false;
+  return c;
 }
 
 export function parseCardFile(path, text) {
@@ -345,24 +369,29 @@ export function parseCardFile(path, text) {
   const client = v('client');
   c.client = client == null ? null : String(client);
   const list = v('list');
-  c.list = c.date ? null : (list == null ? null : String(list));
+  // read it unconditionally — normalizeCard below decides whether a card is
+  // allowed to keep both a list and a date, and an info card keeps the list
+  c.list = list == null ? null : String(list);
   const repeat = String(v('repeat') ?? '').toLowerCase();
   c.repeat = c.date && REPEATS.includes(repeat) ? repeat : null;
   const until = v('until');
   c.until = c.repeat && isDateStr(until) ? String(until) : null;
   c.done = c.type === 'todo' && v('done') === true;
+  c.pinned = v('pinned') === true;
+  const archived = v('archived');
+  c.archived = archived ? String(archived) : null;
   const created = v('created');
   c.created = created ? String(created) : null;
   const author = v('author');
   c.author = author == null ? '' : String(author);
   c.body = body;
-  return c;
+  return normalizeCard(c);
 }
 
 export function serializeCard(card) {
   const L = ['---', `title: ${yamlScalar(card.title || 'Untitled')}`];
   L.push(`type: ${TYPES.includes(card.type) ? card.type : 'todo'}`);
-  if (card.date) {
+  if (card.date && card.type !== 'info') {
     L.push(`date: ${card.date}`);
     if (card.time) L.push(`time: ${JSON.stringify(card.time)}`);
     if (card.repeat && REPEATS.includes(card.repeat)) {
@@ -372,9 +401,13 @@ export function serializeCard(card) {
   } else if (card.list) {
     L.push(`list: ${yamlScalar(card.list)}`);
   }
-  if (card.urgency && URGENCIES.includes(card.urgency)) L.push(`urgency: ${card.urgency}`);
+  if (card.type !== 'info' && card.urgency && URGENCIES.includes(card.urgency)) {
+    L.push(`urgency: ${card.urgency}`);
+  }
   if (card.client) L.push(`client: ${yamlScalar(card.client)}`);
   if (card.type === 'todo' && card.done) L.push('done: true');
+  if (card.type === 'info' && card.pinned) L.push('pinned: true');
+  if (card.archived) L.push(`archived: ${yamlScalar(card.archived)}`);
   if (card.created) L.push(`created: ${yamlScalar(card.created)}`);
   if (card.author) L.push(`author: ${yamlScalar(card.author)}`);
   L.push('---');

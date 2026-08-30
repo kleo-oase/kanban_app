@@ -13,7 +13,8 @@ const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? ' selected' : '
 
 function formHtml(card, isNew) {
   const custom = store.customLists();
-  const noDate = !card.date;
+  const info = card.type === 'info';
+  const noDate = info || !card.date;
   return `
   <form class="card-form" novalidate>
     <label class="field">
@@ -29,7 +30,9 @@ function formHtml(card, isNew) {
       </div>
     </div>
 
-    <div class="field date-block">
+    <p class="hint info-hint"${info ? '' : ' hidden'}>${esc(t('card.info_hint'))}</p>
+
+    <div class="field date-block"${info ? ' hidden' : ''}>
       <span>${esc(t('card.date'))}</span>
       <div class="row">
         <input class="f-date" type="date" value="${esc(card.date || '')}"${noDate ? ' disabled' : ''}>
@@ -65,8 +68,14 @@ function formHtml(card, isNew) {
       <small class="hint f-next"></small>
     </div>
 
-    <div class="two-col">
-      <label class="field">
+    <label class="check f-pin-wrap"${info ? '' : ' hidden'}>
+      <input class="f-pin" type="checkbox"${card.pinned ? ' checked' : ''}>
+      <span>${esc(t('card.pin'))}</span>
+    </label>
+    <small class="hint f-pin-hint"${info ? '' : ' hidden'}>${esc(t('card.pin_hint'))}</small>
+
+    <div class="two-col${info ? ' one-col' : ''}">
+      <label class="field f-urgency-wrap"${info ? ' hidden' : ''}>
         <span>${esc(t('urgency.label'))}</span>
         <select class="f-urgency">
           ${opt('', t('urgency.none'), !card.urgency)}
@@ -97,6 +106,7 @@ function formHtml(card, isNew) {
     <p class="card-meta">
       ${card.author ? `${esc(t('card.author'))}: <b>${esc(card.author)}</b>` : ''}
       ${card.created ? ` · ${esc(t('card.created'))}: ${esc(fmtStamp(card.created))}` : ''}
+      ${card.archived ? ` · ${esc(t('card.archived_on', { date: fmtStamp(card.archived) }))}` : ''}
     </p>
     <p class="form-error" hidden></p>
   </form>`;
@@ -134,6 +144,9 @@ function openEditor(card, { isNew = false } = {}) {
     body: formHtml(draft, isNew) + (isNew ? '' : commentsHtml(draft.id)),
     footer: `
       ${isNew ? '' : `<button class="btn danger f-delete">${esc(t('card.delete'))}</button>`}
+      ${isNew ? '' : (draft.archived
+        ? `<button class="btn f-unarchive">${esc(t('archive.restore'))}</button>`
+        : `<button class="btn f-archive">${esc(t('card.archive'))}</button>`)}
       <span class="spacer"></span>
       <button class="btn f-cancel">${esc(t('card.cancel'))}</button>
       <button class="btn primary f-save">${esc(isNew ? t('card.add') : t('card.save'))}</button>`,
@@ -148,12 +161,27 @@ function openEditor(card, { isNew = false } = {}) {
   };
 
   // --- type segmented control ---
+  // Info cards are notes: no date, no repetition, no urgency — but they can be
+  // pinned to the top of their list instead.
+  const syncType = () => {
+    const info = draft.type === 'info';
+    $('.info-hint').hidden = !info;
+    $('.date-block').hidden = info;
+    $('.f-pin-wrap').hidden = !info;
+    $('.f-pin-hint').hidden = !info;
+    $('.f-urgency-wrap').hidden = info;
+    $('.two-col').classList.toggle('one-col', info);
+    $('.f-done-wrap').classList.toggle('hidden', draft.type !== 'todo');
+    if (draft.type !== 'todo') $('.f-done').checked = false;
+    if (!info) $('.f-pin').checked = false;
+    if (info) { $('.f-nodate').checked = true; $('.f-urgency').value = ''; }
+    syncDate();
+  };
   m.body.querySelectorAll('.f-type button').forEach(b => {
     b.addEventListener('click', () => {
       draft.type = b.dataset.v;
       m.body.querySelectorAll('.f-type button').forEach(x => x.classList.toggle('on', x === b));
-      $('.f-done-wrap').classList.toggle('hidden', draft.type !== 'todo');
-      if (draft.type !== 'todo') $('.f-done').checked = false;
+      syncType();
     });
   });
 
@@ -212,16 +240,18 @@ function openEditor(card, { isNew = false } = {}) {
 
   // --- collect + validate ---
   const collect = () => {
-    const noDate = $('.f-nodate').checked;
+    const info = draft.type === 'info';
+    const noDate = info || $('.f-nodate').checked;
     const out = {
       title: $('.f-title').value.trim(),
       type: draft.type,
+      pinned: info && $('.f-pin').checked,
       date: noDate ? null : ($('.f-date').value || null),
       time: noDate ? null : ($('.f-time').value || null),
       list: noDate ? ($('.f-list').value || null) : null,
       repeat: noDate ? null : ($('.f-repeat').value || null),
       until: noDate ? null : ($('.f-until').value || null),
-      urgency: $('.f-urgency').value || null,
+      urgency: info ? null : ($('.f-urgency').value || null),
       client: $('.f-client').value || null,
       body: $('.f-body').value,
       done: draft.type === 'todo' && $('.f-done').checked,
@@ -243,6 +273,18 @@ function openEditor(card, { isNew = false } = {}) {
     } else {
       store.updateCard(draft.id, r.value);
     }
+    m.close();
+  });
+  m.foot.querySelector('.f-archive')?.addEventListener('click', () => {
+    const r = collect();
+    if (!r.error) store.updateCard(draft.id, r.value);   // keep edits made in this session
+    store.archiveCard(draft.id);
+    toast(t('toast.card_archived', { title: draft.title || '—' }), 'ok');
+    m.close();
+  });
+  m.foot.querySelector('.f-unarchive')?.addEventListener('click', () => {
+    store.unarchiveCard(draft.id);
+    toast(t('toast.card_restored', { title: draft.title || '—' }), 'ok');
     m.close();
   });
   m.foot.querySelector('.f-delete')?.addEventListener('click', async () => {

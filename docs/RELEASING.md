@@ -96,4 +96,19 @@ Run against a real board (not only `?demo=1`):
 - [ ] Settings: rename an employee/client (references on cards follow), delete
       a list (its cards move to the first remaining one).
 - [ ] Welcome screen with no board configured; invite link adds a board.
+- [ ] Archive: archive a card from its editor (it leaves board *and* calendar),
+      reactivate it from the Archive page (date, labels and comments intact),
+      delete one permanently, empty the archive — the deletions show up as
+      pending changes and commit correctly.
+- [ ] Calendar: month / week / day switch, ‹ › steps by the right unit in each
+      mode, "Today" returns, ISO week numbers stay correct across a year
+      boundary.
+- [ ] List colours: pick a swatch and a custom colour on both a weekday column
+      and a custom list, clear it again; the colour survives save + reload.
+- [ ] An overdue to-do is red, one due today is yellow; a completed one and an
+      appointment are neither.
+- [ ] Info card: date, time, repetition and urgency are gone, the list dropdown
+      and *Pin to the top* are there; a pinned card sorts first in both sort
+      directions. Switching a dated card to Info drops the date and shows the
+      list dropdown; switching back offers the date fields again.
 - [ ] Console clean.

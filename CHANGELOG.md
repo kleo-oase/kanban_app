@@ -3,6 +3,31 @@
 All notable, user-visible changes. The app shows a one-time notice when the
 version changes; the details live here.
 
+## 0.2.0 — 2026-08-30
+
+From the first round of client feedback.
+
+- **Archive**: every card now has an *Archive* button. Archived cards leave the
+  board and the calendar without being deleted, and gather on a new third page
+  **Archive**, grouped by the month they were due (newest first, undated last).
+  *Reactivate* brings a card back exactly as it was — date, labels and comments
+  included — so nothing has to be re-created because it was archived by mistake.
+  Single cards can be deleted permanently, and *Empty the archive* clears
+  everything at once; both ask first.
+- **Week and day views in the calendar**, next to the month grid. ‹ and › move
+  by one month, week or day depending on the mode. Week and day give each date a
+  tall column with room for the client name.
+- **Colour codes for lists**: the ⋯ menu on a column header offers eight preset
+  colours, a free colour picker and *No colour*. The colour shows as a bar above
+  the heading and a light wash behind the column — the weekday columns can be
+  coloured too.
+- **Overdue to-dos are red, to-dos due today are yellow**, automatically.
+  Completed to-dos and appointments are never coloured.
+- **Info cards are notes now**: no delivery date and no urgency. Instead they
+  can be **pinned**, which keeps them at the top of their list whatever the
+  sorting says. An info card always lives in one of your own lists; switching a
+  card to Info removes its date.
+
 ## 0.1.0 — 2026-08-02
 
 First prototype.
