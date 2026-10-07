@@ -81,6 +81,7 @@ python3 -m http.server 4174
 
 Plain ES modules need an HTTP server (they do not run from `file://`). No build
 step means what is in the repository is exactly what runs.
+Eigene Kopie der KanBan-App.
 
 ## Release channels
 
