@@ -3,6 +3,39 @@
 All notable, user-visible changes. The app shows a one-time notice when the
 version changes; the details live here.
 
+## 0.3.0 — 2026-10-10
+
+From the second round of client feedback.
+
+- **Repeating to-dos are ticked per iteration.** Ticking one iteration used to
+  tick the whole series; now each iteration has its own tick, so ticking this
+  Monday leaves next Monday open. Notes and comments stay shared by the whole
+  series.
+- **Every iteration shows its own date.** The weekday columns show the
+  iterations of the current week — a daily to-do appears in all seven columns,
+  each chip with its own day — instead of the series' first date everywhere. A
+  ticked iteration stays visible, struck through, until Sunday; a missed one
+  stays red until Sunday; on Monday the new week starts fresh. Series without an
+  iteration this week show their next one.
+- **Tick to-dos right on the card**: one click on ☐ in the list view, no editor
+  needed. A second click opens it again.
+- The editor names the iteration you opened ("Wiederholung vom …"), the done box
+  reads "Erledigt am …", and the date field is labelled as the first date of the
+  series.
+- **End time**: a dated card can have an optional end time next to its start
+  (*von 09:30 bis 10:15*). The day and week view of the calendar and the cards in
+  the list view show the full span; the month grid keeps just the start.
+- Safer dragging: a weekly or fortnightly series dragged to another weekday moves
+  as a whole; dropping a series on one of your own lists is refused instead of
+  silently deleting its repetition and ticks.
+- The "overdue" filter now means the same as the red colour: past to-dos that
+  are not ticked off. Past appointments no longer count as overdue.
+- Fixed: a "weekdays" series whose first date fell on a weekend could show that
+  weekend day as its next iteration.
+
+A `done: true` that an earlier version wrote on a repeating to-do (meaning "the
+whole series") is ignored, as that was exactly the bug.
+
 ## 0.2.0 — 2026-08-30
 
 From the first round of client feedback.

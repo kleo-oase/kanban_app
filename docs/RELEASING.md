@@ -26,8 +26,8 @@ heads.
 ## Flow
 
 1. Develop on a feature branch, or on `beta` directly for small things.
-2. Push to `beta`, test at `/beta/` against a real board, run the smoke
-   checklist below.
+2. Run `npm test`, push to `beta`, test at `/beta/` against a real board, run
+   the smoke checklist below.
 3. Bump `APP_VERSION` in `js/version.js` and add a `CHANGELOG.md` section.
 4. Merge/push to `main`, tag `vX.Y.Z`.
 5. Hotfixes: fix on `main` first, then sync beta with `git push origin main:beta`
@@ -55,7 +55,9 @@ The files in user repositories are the public API.
 - Keep `serialize(parse(file))` byte-identical for files older versions wrote,
   otherwise every file looks modified and commits get noisy.
 - Teach the three-way merge (`_mergeIntoDraft` in `js/store.js`) every new field
-  the moment it is introduced, and add it to the `FIELDS` list.
+  the moment it is introduced, and add it to the `FIELDS` list. A field that
+  holds a set (like `done_on`) must merge as a set — see `mergeTicks` — or two
+  people adding to it at once will overwrite each other.
 - Never rename a card file: the filename is the card's stable id.
 
 ## Shared-origin caveat
@@ -111,4 +113,16 @@ Run against a real board (not only `?demo=1`):
       and *Pin to the top* are there; a pinned card sorts first in both sort
       directions. Switching a dated card to Info drops the date and shows the
       list dropdown; switching back offers the date fields again.
+- [ ] End time: a card with *from 09:30 to 10:15* shows the span on the board
+      and in week/day view, only the start in the month grid; an end before
+      the start is refused; clearing the start clears the end.
+- [ ] Repeating to-do: a daily one shows seven chips with seven different
+      dates; ticking one ☐ ticks only that day (the editor does not open);
+      next week's iterations start open. Open an iteration from the calendar —
+      the note names that date and "Done on …" refers to it.
+- [ ] Comments added from one iteration appear on every other iteration.
+- [ ] Two browsers tick different days of the same series and both save —
+      both ticks survive, no conflict notice.
+- [ ] Dragging a weekly series to another weekday moves the series; dropping
+      any series on a custom list is refused with a message.
 - [ ] Console clean.

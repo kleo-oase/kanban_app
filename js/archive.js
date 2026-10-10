@@ -10,14 +10,14 @@ import { archiveGroups } from './query.js';
 import { openCard } from './card.js';
 import { confirmDialog, toast } from './ui.js';
 import { t, fmtDate, fmtMonthYear, fmtStamp } from './i18n.js';
-import { esc, effectiveDate } from './util.js';
+import { esc, effectiveDate, timeRange } from './util.js';
 
 let root = null;
 
 function rowHtml(card) {
   const d = effectiveDate(card) || card.date;
   const meta = [];
-  if (d) meta.push(`<span class="chip chip-date">${esc(fmtDate(d, true))}${card.time ? ' · ' + esc(card.time) : ''}</span>`);
+  if (d) meta.push(`<span class="chip chip-date">${esc(fmtDate(d, true))}${card.time ? ' · ' + esc(timeRange(card)) : ''}${card.repeat ? ' ↻' : ''}</span>`);
   meta.push(`<span class="chip chip-type">${esc(t('type.' + card.type))}</span>`);
   if (card.urgency) meta.push(`<span class="chip chip-urg u-${card.urgency}">${esc(t('urgency.short.' + card.urgency))}</span>`);
   if (card.client) {

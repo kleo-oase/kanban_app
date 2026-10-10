@@ -3,13 +3,19 @@
 //
 // The dates are generated relative to today so the demo always looks current.
 
-import { todayStr, addDays } from './util.js';
+import { todayStr, addDays, startOfWeek } from './util.js';
 
 // Offsets from *today*, not from the start of the week: the sample board then
 // shows an overdue card (red) and one due today (yellow) whatever day it is
 // opened on.
 const d = n => addDays(todayStr(), n);
 const stamp = n => `${addDays(todayStr(), -n)}T09:12:00Z`;
+
+// A daily to-do ticked on every day of this week so far except the day before
+// yesterday — shows ticked, missed (red) and open iterations side by side.
+const sinceMonday = [];
+for (let x = startOfWeek(todayStr()); x < todayStr(); x = addDays(x, 1)) sinceMonday.push(x);
+const ticked = sinceMonday.filter((_, i) => i !== sinceMonday.length - 2);
 
 const card = (fm, body = '') => `---\n${fm.filter(Boolean).join('\n')}\n---\n${body ? '\n' + body + '\n' : ''}`;
 
@@ -55,6 +61,7 @@ lists:
     'type: date',
     `date: ${d(0)}`,
     'time: "09:30"',
+    'end: "10:15"',
     'urgency: today',
     'client: Müller GmbH',
     `created: ${stamp(6)}`,
@@ -76,6 +83,7 @@ lists:
     'type: date',
     `date: ${d(1)}`,
     'time: "10:00"',
+    'end: "10:30"',
     'repeat: weekly',
     `created: ${stamp(30)}`,
     'author: Chris',
@@ -90,6 +98,18 @@ lists:
     `created: ${stamp(10)}`,
     'author: Bea',
   ], 'Ist seit drei Tagen offen.'),
+
+  'data/cards/medikamente-stellen-h2j4.md': card([
+    'title: Medikamente stellen',
+    'type: todo',
+    `date: ${d(-30)}`,
+    'time: "08:00"',
+    'repeat: daily',
+    'urgency: today',
+    ticked.length ? `done_on: [${ticked.join(', ')}]` : '',
+    `created: ${stamp(30)}`,
+    'author: Anna',
+  ], 'Wochendosetten für alle Bewohner. Jede Wiederholung wird einzeln abgehakt.'),
 
   'data/cards/rechnungen-prufen-g7h8.md': card([
     'title: Rechnungen prüfen',

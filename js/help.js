@@ -41,7 +41,7 @@ const EN = `
   <h3>Colour codes</h3>
   <ul>
     <li><b>Overdue to-dos are red, to-dos due today are yellow</b> — automatic,
-      nothing to set. Completed to-dos are never coloured, and appointments are
+      nothing to set, and judged per iteration of a repeating to-do. Completed to-dos are never coloured, and appointments are
       not either (their date is a fact, not a deadline).</li>
     <li><b>Every list can have a colour</b>: the ⋯ menu on a column header
       offers eight preset colours, a free colour picker, and "No colour". The
@@ -61,9 +61,11 @@ const EN = `
       stored on the card and shown on it.</li>
     <li><b>Delivery date</b> is mandatory unless you tick <b>No date</b>. Only
       then can you pick one of your own lists from the dropdown.</li>
-    <li>A dated card can also carry a <b>time</b> and a <b>repetition</b>
-      (daily, weekdays, weekly, every two weeks, monthly, yearly), optionally
-      with an end date.</li>
+    <li>A dated card can also carry a <b>time</b> — a start, and optionally an
+      end (<i>from 09:30 to 10:15</i>) — and a <b>repetition</b> (daily,
+      weekdays, weekly, every two weeks, monthly, yearly), optionally with an
+      end date. The calendar's week and day views show the full span, the
+      month grid only the start.</li>
     <li>Three labels: the <b>category</b> (appointment / info / to-do — only
       appointments appear in the calendar), the <b>urgency</b> (must be today /
       can wait until tomorrow / no rush) and the <b>client</b>. Clients are
@@ -74,13 +76,37 @@ const EN = `
       them at the top of that list no matter how the board is sorted. Switching
       a card to Info therefore removes its date; switching it back lets you set
       one again.</li>
-    <li>Cards of category <b>to-do</b> can be ticked <b>Completed</b>. They stay
-      where they are, struck through and sorted last; the Filter menu can hide
-      them.</li>
+    <li>To-dos are ticked off with the <b>☐</b> right on the card — or in the
+      editor. Ticked cards stay where they are, struck through and sorted last;
+      the Filter menu can hide them.</li>
     <li>Drag a card to another column to move it. Dropping it on a weekday keeps
       it in its own week and only changes the weekday; dropping it on one of
-      your own lists removes the date.</li>
+      your own lists removes the date. A weekly or fortnightly series moves as a
+      whole; other repetitions are changed in the card.</li>
     <li>Drag a column header sideways to reorder the columns.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>Repeating cards</h3>
+  <p>A repeating card is <b>one card</b> — one title, one set of notes, one
+  comment thread for the whole series — with many <b>iterations</b>, each with
+  its own date and its own tick.</p>
+  <ul>
+    <li>The weekday columns show the iterations of <b>the current week</b>: a
+      daily to-do appears in all seven columns, each chip dated with its own day.
+      A ticked iteration stays visible, struck through, until Sunday; a missed
+      one stays red until Sunday. On Monday the new week starts fresh.</li>
+    <li>A series with no iteration this week (every two weeks, monthly, not
+      started yet) shows its next one; a series that has ended shows its last.</li>
+    <li><b>Ticking an iteration ticks only that one.</b> Next week's iteration is
+      open again, and so is yesterday's if nobody ticked it.</li>
+    <li>Opening a chip or a calendar entry opens the card <i>at that
+      iteration</i>: a note at the top says which one, and the box reads
+      <i>Done on …</i>. The date field there is the <b>first date of the
+      series</b> — changing it moves the whole series.</li>
+    <li>Comments and notes belong to the series: whatever iteration you open,
+      you see the same thread.</li>
   </ul>
 </section>
 
@@ -239,7 +265,8 @@ const DE = `
   <h3>Farbcodes</h3>
   <ul>
     <li><b>Überfällige To-dos sind rot, heute fällige gelb</b> — automatisch,
-      da ist nichts einzustellen. Erledigte To-dos werden nie eingefärbt,
+      da ist nichts einzustellen, und bei wiederkehrenden To-dos für jede
+      Wiederholung einzeln. Erledigte To-dos werden nie eingefärbt,
       Termine ebenfalls nicht (ihr Datum ist eine Tatsache, keine Frist).</li>
     <li><b>Jede Liste kann eine Farbe bekommen</b>: das ⋯-Menü an der
       Spaltenüberschrift bietet acht Farben, einen freien Farbwähler und
@@ -260,9 +287,11 @@ const DE = `
     <li>Das <b>Termindatum</b> ist Pflicht, außer du kreuzt <b>Kein Datum</b>
       an. Nur dann kannst du im Auswahlmenü eine deiner eigenen Listen
       wählen.</li>
-    <li>Eine Karte mit Datum kann zusätzlich eine <b>Uhrzeit</b> und eine
-      <b>Wiederholung</b> haben (täglich, werktags, wöchentlich, alle zwei
-      Wochen, monatlich, jährlich), wahlweise mit Enddatum.</li>
+    <li>Eine Karte mit Datum kann zusätzlich eine <b>Uhrzeit</b> haben — einen
+      Beginn und wahlweise ein Ende (<i>von 09:30 bis 10:15</i>) — sowie eine
+      <b>Wiederholung</b> (täglich, werktags, wöchentlich, alle zwei Wochen,
+      monatlich, jährlich), wahlweise mit Enddatum. Wochen- und Tagesansicht im
+      Kalender zeigen die ganze Spanne, das Monatsraster nur den Beginn.</li>
     <li>Drei Labels: die <b>Kategorie</b> (Termin / Info / To-do — nur Termine
       erscheinen im Kalender), die <b>Dringlichkeit</b> (unbedingt heute /
       notfalls morgen / kein Stress) und der <b>Kunde</b>. Kunden werden in den
@@ -273,13 +302,41 @@ const DE = `
       <b>fixieren</b> — dann stehen sie immer oben in dieser Liste, egal wie
       sortiert wird. Eine Karte auf Info umzustellen entfernt deshalb ihr
       Datum; stellst du sie zurück, kannst du wieder eines setzen.</li>
-    <li>Karten der Kategorie <b>To-do</b> lassen sich als <b>erledigt</b>
-      abhaken. Sie bleiben, wo sie sind, werden durchgestrichen und nach hinten
-      sortiert; im Filter kannst du sie ausblenden.</li>
+    <li>To-dos hakst du mit dem <b>☐</b> direkt auf der Karte ab — oder im
+      Editor. Abgehakte Karten bleiben, wo sie sind, werden durchgestrichen und
+      nach hinten sortiert; im Filter kannst du sie ausblenden.</li>
     <li>Ziehe eine Karte in eine andere Spalte, um sie zu verschieben. Auf einem
       Wochentag abgelegt bleibt sie in ihrer Woche und wechselt nur den Tag; auf
-      einer deiner eigenen Listen abgelegt verliert sie das Datum.</li>
+      einer deiner eigenen Listen abgelegt verliert sie das Datum. Eine
+      wöchentliche oder 14-tägige Serie zieht als Ganzes um; andere
+      Wiederholungen änderst du in der Karte.</li>
     <li>Ziehe eine Spaltenüberschrift zur Seite, um die Spalten umzuordnen.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>Wiederkehrende Karten</h3>
+  <p>Eine wiederkehrende Karte ist <b>eine Karte</b> — ein Titel, eine Notiz,
+  ein Kommentarverlauf für die ganze Serie — mit vielen <b>Wiederholungen</b>,
+  jede mit eigenem Datum und eigenem Häkchen.</p>
+  <ul>
+    <li>Die Wochentagsspalten zeigen die Wiederholungen der <b>aktuellen
+      Woche</b>: ein tägliches To-do steht in allen sieben Spalten, jede Karte
+      mit ihrem eigenen Datum. Eine abgehakte Wiederholung bleibt bis Sonntag
+      durchgestrichen sichtbar, eine verpasste bleibt bis Sonntag rot. Am
+      Montag beginnt die neue Woche frisch.</li>
+    <li>Eine Serie ohne Termin in dieser Woche (14-tägig, monatlich, noch nicht
+      begonnen) zeigt ihren nächsten; eine beendete Serie ihren letzten.</li>
+    <li><b>Abhaken gilt nur für diese eine Wiederholung.</b> Die der nächsten
+      Woche ist wieder offen — und die von gestern auch, falls niemand sie
+      abgehakt hat.</li>
+    <li>Ein Klick auf eine Karte oder einen Kalendereintrag öffnet die Karte
+      <i>bei dieser Wiederholung</i>: oben steht, welche es ist, und das
+      Kästchen heißt <i>Erledigt am …</i>. Das Datumsfeld ist dort der
+      <b>erste Termin der Serie</b> — wer es ändert, verschiebt die ganze
+      Serie.</li>
+    <li>Kommentare und Notizen gehören zur Serie: egal welche Wiederholung du
+      öffnest, du siehst denselben Verlauf.</li>
   </ul>
 </section>
 

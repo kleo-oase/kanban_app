@@ -16,11 +16,13 @@ one commit there.
   emptied in one go.
 
 A card has a title, a delivery date (mandatory unless "no date" is ticked) with
-optional time and repetition, three labels — category (*appointment / info /
-to-do*), urgency (*must be today / can wait until tomorrow / no rush*) and
-client — free Markdown text, the creation date, the employee who created it, and
-comments. To-do cards can be ticked as completed. Info cards are notes: no date,
-no urgency, and they can be pinned to the top of their list.
+an optional start and end time and an optional repetition, three labels —
+category (*appointment / info / to-do*), urgency (*must be today / can wait
+until tomorrow / no rush*) and client — free Markdown text, the creation date,
+the employee who created it, and comments. To-do cards are ticked off right on the card; a repeating to-do is
+ticked per iteration, while its notes and comments are shared by the whole
+series. Info cards are notes: no date, no urgency, and they can be pinned to the
+top of their list.
 
 Filter, sort and search are in the top bar; the interface is available in
 **German and English**.
@@ -81,6 +83,15 @@ python3 -m http.server 4174
 
 Plain ES modules need an HTTP server (they do not run from `file://`). No build
 step means what is in the repository is exactly what runs.
+
+```bash
+npm test        # or: node tests/run.js — Node 18+, no packages to install
+```
+
+The tests cover the file formats, the date and recurrence maths, the three-way
+merge and what the board and calendar show; they run against a fixed clock.
+`package.json` exists only to mark the modules as ES modules for Node — there
+are no dependencies. Neither it nor `tests/` is deployed.
 
 ## Release channels
 

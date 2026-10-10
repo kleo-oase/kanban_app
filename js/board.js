@@ -4,15 +4,18 @@
 //
 // Cards inside a column are always sorted automatically (see js/query.js) —
 // they cannot be reordered by hand, by design.
+//
+// Every chip is an *entry*: a card at one date. A repeating card shows one chip
+// per iteration of the current week, each with its own date and its own tick;
+// clicking the ☐ ticks exactly that iteration.
 
 import { store } from './store.js';
-import { cardsForList, listOf, dueStatus } from './query.js';
+import { boardColumns, listOf, dueStatus } from './query.js';
 import { openCard, createCard } from './card.js';
 import { openMenu, confirmDialog, draggable, toast, closeMenu } from './ui.js';
 import { t, weekdayName, fmtDate } from './i18n.js';
 import {
-  WEEKDAY_IDS, esc, todayStr, weekdayId, weekdayIndex, addDays, weekdaysOf,
-  effectiveDate, isOverdue,
+  WEEKDAY_IDS, esc, todayStr, weekdayId, weekdayIndex, addDays, timeRange,
 } from './util.js';
 
 let root = null;
@@ -21,21 +24,21 @@ let dragEndedAt = 0;   // a pointerup that ended a drag must not open the card
 
 // ---------- card chip ----------
 
-export function cardChipHtml(card) {
-  const due = dueStatus(card);
+export function cardChipHtml(e) {
+  const card = e.card;
+  const due = dueStatus(e);
   const cls = [
     'kcard', 't-' + card.type,
     card.urgency ? 'u-' + card.urgency : '',
     due ? 'due-' + due : '',
     card.pinned ? 'pinned' : '',
-    card.type === 'todo' && card.done ? 'done' : '',
+    e.done ? 'done' : '',
   ].filter(Boolean).join(' ');
 
-  const d = effectiveDate(card);
   const meta = [];
-  if (d) {
-    meta.push(`<span class="chip chip-date${isOverdue(d) && !card.done ? ' overdue' : ''}">${
-      esc(fmtDate(d))}${card.time ? ' · ' + esc(card.time) : ''}${card.repeat ? ' ↻' : ''}</span>`);
+  if (e.date) {
+    meta.push(`<span class="chip chip-date${due === 'overdue' ? ' overdue' : ''}">${
+      esc(fmtDate(e.date))}${card.time ? ' · ' + esc(timeRange(card)) : ''}${card.repeat ? ' ↻' : ''}</span>`);
   }
   meta.push(`<span class="chip chip-type">${esc(t('type.' + card.type))}</span>`);
   if (card.urgency) {
@@ -45,19 +48,21 @@ export function cardChipHtml(card) {
     meta.push(`<span class="chip chip-client" style="--c:${esc(store.clientColor(card.client))}">${esc(card.client)}</span>`);
   }
 
-  return `<article class="${cls}" data-id="${esc(card.id)}" tabindex="0"
+  const tick = card.type === 'todo'
+    ? `<button type="button" class="tick" aria-pressed="${e.done}"
+         title="${esc(t(e.done ? 'card.untick' : 'card.tick'))}">${e.done ? '☑' : '☐'}</button>`
+    : '';
+  return `<article class="${cls}" data-id="${esc(card.id)}" data-date="${esc(e.date || '')}" tabindex="0"
             style="--c:${esc(card.client ? store.clientColor(card.client) : 'transparent')}">
-    <div class="kcard-title">${card.pinned ? '<span class="pin">📌</span>' : ''}${
-      card.type === 'todo' ? `<span class="tick">${card.done ? '☑' : '☐'}</span>` : ''}${esc(card.title || '—')}</div>
+    <div class="kcard-title">${card.pinned ? '<span class="pin">📌</span>' : ''}${tick}<span class="kcard-text">${esc(card.title || '—')}</span></div>
     <div class="kcard-meta">${meta.join('')}</div>
   </article>`;
 }
 
 // ---------- rendering ----------
 
-function columnHtml(list) {
+function columnHtml(list, cards) {
   const isWeekday = WEEKDAY_IDS.includes(list.id);
-  const cards = cardsForList(list.id);
   const isToday = isWeekday && list.id === weekdayId(todayStr());
   return `
   <section class="col${isWeekday ? ' col-weekday' : ' col-custom'}${isToday ? ' col-today' : ''}${list.color ? ' col-colored' : ''}"
@@ -77,9 +82,10 @@ function columnHtml(list) {
 function render() {
   if (!root || dragging) return;
   const scroll = root.querySelector('.board')?.scrollLeft || 0;
+  const cols = boardColumns();
   root.innerHTML = `
     <div class="board">
-      ${store.config.lists.map(columnHtml).join('')}
+      ${store.config.lists.map(l => columnHtml(l, cols.get(l.id) || [])).join('')}
       <section class="col col-new">
         <form class="new-list">
           <input type="text" maxlength="60" placeholder="${esc(t('board.new_list_ph'))}" autocomplete="off">
@@ -97,15 +103,21 @@ function render() {
 
 function wire(boardEl) {
   boardEl.querySelectorAll('.kcard').forEach(el => {
+    const id = el.dataset.id;
+    const date = el.dataset.date || null;
     el.addEventListener('click', () => {
       if (dragging || Date.now() - dragEndedAt < 250) return;
-      openCard(el.dataset.id);
+      openCard(id, date);
     });
     el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCard(el.dataset.id); }
+      if (e.target !== el) return;   // keys on the ☐ belong to the ☐
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCard(id, date); }
     });
-    const card = store.cards[el.dataset.id];
-    if (card && weekdaysOf(card).length <= 1) wireCardDrag(el, boardEl);
+    el.querySelector('.tick')?.addEventListener('click', e => {
+      e.stopPropagation();
+      store.toggleDone(id, date);
+    });
+    if (isDraggable(store.cards[id])) wireCardDrag(el, boardEl);
   });
 
   boardEl.querySelectorAll('.add-card').forEach(btn => {
@@ -305,11 +317,31 @@ function wireCardDrag(el, boardEl) {
   }
 }
 
+// One-off cards move freely. A weekly or fortnightly series can be dragged to
+// another weekday (the whole series moves); the other repetitions show up in
+// several columns or drift across weekdays, so they are changed in the editor.
+function isDraggable(card) {
+  return !!card && (!card.repeat || card.repeat === 'weekly' || card.repeat === 'biweekly');
+}
+
 function dropCard(cardId, listId) {
   const card = store.cards[cardId];
   if (!card) return;
   const from = card.date ? weekdayId(card.date) : listOf(card);
   if (from === listId) return;
+
+  // Dropping a series on a list would remove its date and with it the
+  // repetition and every tick — far too much for a slip of the mouse.
+  if (card.repeat && !WEEKDAY_IDS.includes(listId)) {
+    toast(t('board.series_needs_editor'), 'err', 4500);
+    return;
+  }
+  if (card.repeat) {
+    const wanted = WEEKDAY_IDS.indexOf(listId);
+    store.updateCard(cardId, { date: addDays(card.date, wanted - weekdayIndex(card.date)) });
+    toast(t('board.series_moved', { day: weekdayName(listId) }), 'info', 3000);
+    return;
+  }
 
   if (WEEKDAY_IDS.includes(listId)) {
     const wanted = WEEKDAY_IDS.indexOf(listId);
@@ -325,7 +357,7 @@ function dropCard(cardId, listId) {
     store.updateCard(cardId, { date, list: null });
     toast(t('board.moved_to_day', { day: weekdayName(listId), date: fmtDate(date, true) }), 'info', 3000);
   } else {
-    store.updateCard(cardId, { date: null, time: null, repeat: null, until: null, list: listId });
+    store.updateCard(cardId, { date: null, time: null, end: null, repeat: null, until: null, list: listId });
     toast(t('board.moved_to_list', { name: store.listName(listId) }), 'info', 3000);
   }
 }

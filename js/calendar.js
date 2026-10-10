@@ -2,14 +2,16 @@
 //   month  seven weekday columns, one row per calendar week, ISO week numbers
 //   week   seven tall columns for one week
 //   day    a single column for one day
-// Repeating cards appear on every occurrence.
+// Repeating cards appear on every occurrence, each with its own tick; week and
+// day view show the full time span ("09:30–10:15"), the month grid only the
+// start to save room.
 
 import { store } from './store.js';
-import { cardsForDate } from './query.js';
+import { entriesForDate } from './query.js';
 import { openCard, createCard } from './card.js';
 import { t, weekdayShort, fmtMonthYear, fmtDate, fmtDateLong, fmtDayShort } from './i18n.js';
 import {
-  WEEKDAY_IDS, esc, todayStr, addDays, addMonths, startOfWeek, isoWeek,
+  WEEKDAY_IDS, esc, todayStr, addDays, addMonths, startOfWeek, isoWeek, timeRange,
 } from './util.js';
 
 const MODES = ['month', 'week', 'day'];
@@ -52,20 +54,22 @@ function title() {
 
 // ---------- entries ----------
 
-function entryHtml(card, big = false) {
+function entryHtml(e, big = false) {
+  const card = e.card;
   const color = card.client ? store.clientColor(card.client) : '';
-  const done = card.type === 'todo' && card.done;
-  return `<button class="cal-entry${big ? ' big' : ''} t-${card.type}${done ? ' done' : ''}${card.urgency ? ' u-' + card.urgency : ''}"
-      data-id="${esc(card.id)}" title="${esc(card.title || '')}${card.client ? ' — ' + esc(card.client) : ''}">
+  const time = big ? timeRange(card) : card.time;
+  return `<button class="cal-entry${big ? ' big' : ''} t-${card.type}${e.done ? ' done' : ''}${card.urgency ? ' u-' + card.urgency : ''}"
+      data-id="${esc(card.id)}" data-date="${esc(e.date)}"
+      title="${esc(timeRange(card) ? timeRange(card) + ' ' : '')}${esc(card.title || '')}${card.client ? ' — ' + esc(card.client) : ''}">
     <span class="dot" style="background:${esc(color || 'transparent')};${color ? '' : 'border-color:currentColor'}"></span>
-    ${card.time ? `<time>${esc(card.time)}</time>` : ''}
+    ${time ? `<time>${esc(time)}</time>` : ''}
     <span class="cal-title">${esc(card.title || '—')}</span>
     ${big && card.client ? `<span class="cal-client">${esc(card.client)}</span>` : ''}
   </button>`;
 }
 
 const dayCell = (ds, monthKey, today) => {
-  const cards = cardsForDate(ds);
+  const cards = entriesForDate(ds);
   const out = monthKey && ds.slice(0, 7) !== monthKey;
   return `<div class="cal-day${out ? ' out' : ''}${ds === today ? ' today' : ''}" data-date="${ds}">
     <div class="cal-daynum">${Number(ds.slice(8, 10))}</div>
@@ -91,7 +95,7 @@ function weekGrid(a, today) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
   return `<div class="cal-week">
     ${days.map(ds => {
-      const cards = cardsForDate(ds);
+      const cards = entriesForDate(ds);
       return `<section class="cal-col${ds === today ? ' today' : ''}" data-date="${ds}">
         <header>${esc(fmtDayShort(ds))}</header>
         <div class="cal-entries">
@@ -104,7 +108,7 @@ function weekGrid(a, today) {
 }
 
 function dayGrid(a, today) {
-  const cards = cardsForDate(a);
+  const cards = entriesForDate(a);
   return `<div class="cal-single">
     <section class="cal-col${a === today ? ' today' : ''}" data-date="${a}">
       <div class="cal-entries">
@@ -147,7 +151,7 @@ function render() {
   });
 
   root.querySelectorAll('.cal-entry').forEach(b => {
-    b.addEventListener('click', e => { e.stopPropagation(); openCard(b.dataset.id); });
+    b.addEventListener('click', e => { e.stopPropagation(); openCard(b.dataset.id, b.dataset.date); });
   });
   root.querySelectorAll('.cal-day, .cal-col').forEach(d => {
     d.addEventListener('dblclick', () => createCard({ date: d.dataset.date, type: 'date' }));

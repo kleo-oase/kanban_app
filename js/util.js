@@ -101,8 +101,6 @@ export function isoWeek(ds) {
   return 1 + Math.round((d.getTime() - first.getTime()) / (7 * DAY_MS));
 }
 
-export const isOverdue = ds => !!ds && ds < todayStr();
-
 // ---------- recurrence ----------
 // A card with `repeat` recurs from its `date` until `until` (or forever).
 // `occurrences` lists the dates it falls on inside [from, to].
@@ -146,29 +144,27 @@ export function occurrences(card, from, to) {
 }
 
 // The next occurrence on or after `from` (null if the recurrence has ended).
+// Always goes through `occurrences`, so a "weekdays" series anchored on a
+// Saturday correctly starts on the Monday after.
 export function nextOccurrence(card, from = todayStr()) {
   if (!card || !isDateStr(card.date)) return null;
-  if (card.date >= from) return card.date;
-  const found = occurrences(card, from, addDays(from, 800));
+  const start = card.date > from ? card.date : from;
+  const found = occurrences(card, start, addDays(start, 800));
   return found[0] || null;
 }
 
-// Which weekday column(s) a card belongs to in the board view.
-// Non-recurring: the weekday of its date. Daily/weekdays: all of them.
-// Weekly/biweekly: the anchor weekday. Monthly/yearly: the weekday of the next
-// occurrence (they drift, so "where is it next" is the useful answer).
-export function weekdaysOf(card) {
-  if (!isDateStr(card.date)) return [];
-  switch (card.repeat) {
-    case 'daily': return WEEKDAY_IDS.slice();
-    case 'weekdays': return WEEKDAY_IDS.slice(0, 5);
-    case 'monthly': case 'yearly': {
-      const n = nextOccurrence(card);
-      return [weekdayId(n || card.date)];
-    }
-    default: return [weekdayId(card.date)];
-  }
+// The last occurrence on or before `onOrBefore` (null if the series has not
+// started yet). Looks at the last ~13 months first so a long daily series does
+// not have to be walked from its very first day.
+export function lastOccurrence(card, onOrBefore) {
+  if (!card || !isDateStr(card.date) || card.date > onOrBefore) return null;
+  const near = occurrences(card, addDays(onOrBefore, -400), onOrBefore);
+  if (near.length) return near[near.length - 1];
+  const all = occurrences(card, card.date, onOrBefore);
+  return all.length ? all[all.length - 1] : null;
 }
+
+export const isOccurrence = (card, ds) => occurrences(card, ds, ds).length > 0;
 
 // The date a card is "sorted by" — its next occurrence for repeating cards.
 export const effectiveDate = card => (card.repeat ? nextOccurrence(card) : null) || card.date || null;
@@ -328,8 +324,8 @@ export { isoNow };
 
 export function emptyCard(id = '') {
   return {
-    id, title: '', type: 'todo', date: null, time: null, list: null,
-    urgency: null, client: null, repeat: null, until: null, done: false,
+    id, title: '', type: 'todo', date: null, time: null, end: null, list: null,
+    urgency: null, client: null, repeat: null, until: null, done: false, doneOn: [],
     pinned: false, archived: null, created: null, author: '', body: '',
   };
 }
@@ -338,17 +334,45 @@ export function emptyCard(id = '') {
 // a repetition or an urgency, and they can be pinned to the top of their list
 // instead. Enforced in one place so hand-written files, the editor and the
 // merge all agree.
+//
+// A to-do is ticked in one of two ways: a one-off card with `done`, a repeating
+// one per iteration with `doneOn` (the dates that were ticked), so ticking this
+// Monday leaves next Monday open. Only the field that fits the card survives.
+// Also fills fields that drafts written by older app versions do not have.
 export function normalizeCard(c) {
+  if (!Array.isArray(c.doneOn)) c.doneOn = [];
+  if (c.end === undefined) c.end = null;
   if (c.type === 'info') {
-    c.date = c.time = c.repeat = c.until = c.urgency = null;
+    c.date = c.time = c.end = c.repeat = c.until = c.urgency = null;
   } else {
     c.pinned = false;
     if (c.date) c.list = null;
-    else c.time = c.repeat = c.until = null;
+    else c.time = c.end = c.repeat = c.until = null;
   }
+  if (!c.time || !c.end || c.end <= c.time) c.end = null;
   if (!c.repeat) c.until = null;
-  if (c.type !== 'todo') c.done = false;
+  if (c.type !== 'todo') { c.done = false; c.doneOn = []; }
+  else if (c.repeat) c.done = false;
+  else c.doneOn = [];
   return c;
+}
+
+// Is this card ticked for the given date? One-off to-dos ignore the date.
+export function isDoneOn(card, date) {
+  if (!card || card.type !== 'todo') return false;
+  if (card.repeat) return !!date && (card.doneOn || []).includes(date);
+  return !!card.done;
+}
+
+// "09:30" or "09:30–10:15"
+export const timeRange = card => (card.time ? (card.end ? `${card.time}–${card.end}` : card.time) : '');
+
+// `[2026-10-05, 2026-10-12]` (or a single bare date) -> sorted unique dates
+function parseDateList(raw) {
+  let str = String(raw ?? '').trim();
+  if (str.startsWith('[') && str.endsWith(']')) str = str.slice(1, -1);
+  const out = str.split(',').map(x => parseYamlScalar(x)).filter(isDateStr).map(String);
+  return [...new Set(out)].sort();
 }
 
 export function parseCardFile(path, text) {
@@ -364,6 +388,8 @@ export function parseCardFile(path, text) {
   c.date = isDateStr(date) ? String(date) : null;
   const time = v('time');
   c.time = c.date && isTimeStr(time) ? String(time) : null;
+  const end = v('end');
+  c.end = c.time && isTimeStr(end) ? String(end) : null;
   const urgency = String(v('urgency') ?? '').toLowerCase();
   c.urgency = URGENCIES.includes(urgency) ? urgency : null;
   const client = v('client');
@@ -377,6 +403,7 @@ export function parseCardFile(path, text) {
   const until = v('until');
   c.until = c.repeat && isDateStr(until) ? String(until) : null;
   c.done = c.type === 'todo' && v('done') === true;
+  c.doneOn = parseDateList(fields.done_on);
   c.pinned = v('pinned') === true;
   const archived = v('archived');
   c.archived = archived ? String(archived) : null;
@@ -394,6 +421,7 @@ export function serializeCard(card) {
   if (card.date && card.type !== 'info') {
     L.push(`date: ${card.date}`);
     if (card.time) L.push(`time: ${JSON.stringify(card.time)}`);
+    if (card.time && card.end) L.push(`end: ${JSON.stringify(card.end)}`);
     if (card.repeat && REPEATS.includes(card.repeat)) {
       L.push(`repeat: ${card.repeat}`);
       if (card.until) L.push(`until: ${card.until}`);
@@ -405,7 +433,11 @@ export function serializeCard(card) {
     L.push(`urgency: ${card.urgency}`);
   }
   if (card.client) L.push(`client: ${yamlScalar(card.client)}`);
-  if (card.type === 'todo' && card.done) L.push('done: true');
+  if (card.type === 'todo') {
+    const ticked = [...new Set(card.doneOn || [])].filter(isDateStr).sort();
+    if (card.repeat && card.date) { if (ticked.length) L.push(`done_on: [${ticked.join(', ')}]`); }
+    else if (card.done) L.push('done: true');
+  }
   if (card.type === 'info' && card.pinned) L.push('pinned: true');
   if (card.archived) L.push(`archived: ${yamlScalar(card.archived)}`);
   if (card.created) L.push(`created: ${yamlScalar(card.created)}`);
