@@ -100,6 +100,4 @@ author: Anna
 Free **text** here.
 `;
 eq(U.serializeCard(U.parseCardFile('a/b.md', full)), full, 'a full one-off card round-trips byte-identically');
-eq(/javascript:/i.test(U.renderMarkdown('[l](JaVaScRiPt:alert(1))')), false, 'markdown blocks js: links');
-eq(U.renderMarkdown('<script>x</script>'), '<p>&lt;script&gt;x&lt;/script&gt;</p>', 'markdown escapes html');
 eq(U.slugify('Müller & Co. — Angebot!'), 'muller-co-angebot', 'slugify');

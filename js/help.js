@@ -66,6 +66,12 @@ const EN = `
       weekdays, weekly, every two weeks, monthly, yearly), optionally with an
       end date. The calendar's week and day views show the full span, the
       month grid only the start.</li>
+    <li><b>Notes</b> can be formatted with the bar above them: headings, bold,
+      italic, underline, strikethrough, text colours, bulleted and numbered
+      lists, quotes, links and dividing lines. <i>Default colour</i> removes a
+      colour, the last button removes all formatting from the selection.
+      Shortcuts: Ctrl/⌘+B, I, U and K (link). Pasted text keeps its basic
+      formatting; fonts, sizes and foreign colours are left out.</li>
     <li>Three labels: the <b>category</b> (appointment / info / to-do — only
       appointments appear in the calendar), the <b>urgency</b> (must be today /
       can wait until tomorrow / no rush) and the <b>client</b>. Clients are
@@ -292,6 +298,13 @@ const DE = `
       <b>Wiederholung</b> (täglich, werktags, wöchentlich, alle zwei Wochen,
       monatlich, jährlich), wahlweise mit Enddatum. Wochen- und Tagesansicht im
       Kalender zeigen die ganze Spanne, das Monatsraster nur den Beginn.</li>
+    <li><b>Notizen</b> lassen sich über die Leiste darüber formatieren:
+      Überschriften, fett, kursiv, unterstrichen, durchgestrichen, Textfarben,
+      Aufzählungen und nummerierte Listen, Zitate, Links und Trennlinien.
+      <i>Standardfarbe</i> entfernt eine Farbe, die letzte Schaltfläche alle
+      Formatierungen der Auswahl. Tastenkürzel: Strg/⌘+B, I, U und K (Link).
+      Eingefügter Text behält seine Grundformatierung; Schriftarten, -größen und
+      fremde Farben bleiben weg.</li>
     <li>Drei Labels: die <b>Kategorie</b> (Termin / Info / To-do — nur Termine
       erscheinen im Kalender), die <b>Dringlichkeit</b> (unbedingt heute /
       notfalls morgen / kein Stress) und der <b>Kunde</b>. Kunden werden in den

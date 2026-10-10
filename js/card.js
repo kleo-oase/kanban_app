@@ -8,9 +8,11 @@
 import { store } from './store.js';
 import { openModal, confirmDialog, toast } from './ui.js';
 import { askWho } from './who.js';
+import { renderMarkdown } from './markdown.js';
+import { createRichEditor } from './richtext.js';
 import { t, fmtStamp, fmtDate, fmtDateLong } from './i18n.js';
 import {
-  TYPES, URGENCIES, REPEATS, esc, renderMarkdown, todayStr, isDateStr,
+  TYPES, URGENCIES, REPEATS, esc, todayStr, isDateStr,
   nextOccurrence, isOccurrence, isDoneOn, effectiveDate,
 } from './util.js';
 
@@ -106,10 +108,10 @@ function formHtml(card, isNew, occ) {
       </label>
     </div>
 
-    <label class="field">
+    <div class="field">
       <span>${esc(t('card.body'))}</span>
-      <textarea class="f-body" rows="5" placeholder="${esc(t('card.body_ph'))}">${esc(card.body || '')}</textarea>
-    </label>
+      <div class="f-body"></div>
+    </div>
 
     <label class="check f-done-wrap${card.type === 'todo' ? '' : ' hidden'}">
       <input class="f-done" type="checkbox"${isDoneOn(card, occ) ? ' checked' : ''}>
@@ -136,7 +138,7 @@ function commentsHtml(cardId) {
             <header><b>${esc(c.author || '—')}</b><time>${esc(fmtStamp(c.created))}</time>
               <button class="icon-btn c-del" title="${esc(t('card.delete'))}">✕</button>
             </header>
-            <div class="comment-body">${renderMarkdown(c.text)}</div>
+            <div class="comment-body md">${renderMarkdown(c.text)}</div>
           </article>`).join('')
           : `<p class="muted">${esc(t('comments.none'))}</p>`}
       </div>
@@ -168,6 +170,7 @@ function openEditor(card, { isNew = false, occ: openedAt = null } = {}) {
   });
 
   const $ = s => m.body.querySelector(s);
+  const notes = createRichEditor($('.f-body'), draft.body || '', { placeholder: t('card.body_ph') });
   const err = $('.form-error');
   const showErr = msg => {
     err.textContent = msg;
@@ -290,7 +293,7 @@ function openEditor(card, { isNew = false, occ: openedAt = null } = {}) {
       until: noDate ? null : ($('.f-until').value || null),
       urgency: info ? null : ($('.f-urgency').value || null),
       client: $('.f-client').value || null,
-      body: $('.f-body').value,
+      body: notes.getMarkdown(),
     };
     if (!out.repeat) out.until = null;
     if (!out.time) out.end = null;

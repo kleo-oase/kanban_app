@@ -8,6 +8,7 @@
 // work per entry; filters about content (category, client, search…) per card.
 
 import { store } from './store.js';
+import { stripFormatting } from './markdown.js';
 import {
   TYPES, URGENCIES,
   todayStr, addDays, startOfWeek, weekdayId, effectiveDate,
@@ -61,7 +62,7 @@ export function boardEntriesOf(card) {
 export function matchesSearch(card, q) {
   const needle = String(q || '').trim().toLowerCase();
   if (!needle) return true;
-  const hay = `${card.title || ''}\n${card.body || ''}`.toLowerCase();
+  const hay = `${card.title || ''}\n${stripFormatting(card.body)}`.toLowerCase();
   return needle.split(/\s+/).every(w => hay.includes(w));
 }
 

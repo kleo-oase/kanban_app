@@ -3,6 +3,23 @@
 All notable, user-visible changes. The app shows a one-time notice when the
 version changes; the details live here.
 
+## 0.4.0 — 2026-10-10
+
+- **Formatted notes.** The notes box of a card has a formatting bar: headings,
+  **bold**, *italic*, underline, strikethrough, seven text colours (legible in
+  the light and the dark theme), bulleted and numbered lists, quotes, links and
+  dividing lines, plus "clear formatting". Ctrl/⌘+B, I, U and K work as
+  shortcuts. The notes show formatted while you edit — no markup to type.
+- Pasting from a web page, Word or Google Docs keeps bold, italic, lists and
+  the like but leaves out fonts, sizes and colours outside the palette, so what
+  you see is exactly what gets saved.
+- Notes are still plain Markdown in the data repository (with a few inline
+  tags for underline and colours), and a note is only rewritten when someone
+  actually edits it.
+- Comments use the same, nicer typography.
+- Search ignores formatting: searching for "color" no longer finds every
+  coloured note.
+
 ## 0.3.0 — 2026-10-10
 
 From the second round of client feedback.

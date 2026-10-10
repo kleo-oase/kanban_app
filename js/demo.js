@@ -174,7 +174,8 @@ lists:
     'list: l-backlog',
     `created: ${stamp(14)}`,
     'author: Anna',
-  ], 'Angebote:\n\n- Modell A — 480 €\n- Modell B — 620 €, mit Wartungsvertrag'),
+  ], '## Angebote\n\n- Modell A — <b>480 €</b>\n- Modell B — 620 €, <span style="color:#27895a">mit Wartungsvertrag</span>\n\n'
+    + '<u>Entscheidung</u> bis Monatsende. <s>Modell C</s> ist nicht mehr lieferbar.'),
 
   'data/cards/kundenevent-im-herbst-u1v2.md': card([
     'title: Kundenevent im Herbst',

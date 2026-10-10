@@ -125,4 +125,11 @@ Run against a real board (not only `?demo=1`):
       both ticks survive, no conflict notice.
 - [ ] Dragging a weekly series to another weekday moves the series; dropping
       any series on a custom list is refused with a message.
+- [ ] Notes: bold / italic / underline / strike / colour / heading / lists /
+      quote / link / line via the bar (with the mouse — the selection must
+      survive the click); "default colour" removes a colour; "clear formatting"
+      removes bold & co. Save, reopen: identical. Open and save a card without
+      touching the notes: no change to save.
+- [ ] Paste from a web page and from Google Docs: lists and bold survive,
+      fonts/sizes/foreign colours do not; pasted `**` and `<b>` stay text.
 - [ ] Console clean.
