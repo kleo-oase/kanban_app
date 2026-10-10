@@ -1,22 +1,33 @@
 // card.js — the card editor: every property of a card, its comments, and the
 // delete action. Opened from both views.
+//
+// A repeating card is opened *at one iteration* (the chip or calendar entry
+// that was clicked). The editor names that iteration, and its "done" box ticks
+// only that one; date and repetition fields describe the whole series.
 
 import { store } from './store.js';
 import { openModal, confirmDialog, toast } from './ui.js';
 import { askWho } from './who.js';
-import { t, fmtStamp, fmtDateLong } from './i18n.js';
+import { renderMarkdown } from './markdown.js';
+import { createRichEditor } from './richtext.js';
+import { t, fmtStamp, fmtDate, fmtDateLong } from './i18n.js';
 import {
-  TYPES, URGENCIES, REPEATS, esc, renderMarkdown, todayStr, isDateStr, nextOccurrence,
+  TYPES, URGENCIES, REPEATS, esc, todayStr, isDateStr,
+  nextOccurrence, isOccurrence, isDoneOn, effectiveDate,
 } from './util.js';
 
 const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
 
-function formHtml(card, isNew) {
+function formHtml(card, isNew, occ) {
   const custom = store.customLists();
   const info = card.type === 'info';
   const noDate = info || !card.date;
+  const series = !!card.repeat && !noDate;
   return `
   <form class="card-form" novalidate>
+    <p class="occ-banner"${series && occ && !isNew ? '' : ' hidden'}>↻ <span class="occ-text">${
+      occ ? esc(t('card.occurrence', { date: fmtDateLong(occ) })) : ''}</span></p>
+
     <label class="field">
       <span>${esc(t('card.title'))}</span>
       <input class="f-title" type="text" maxlength="200" autocomplete="off"
@@ -33,11 +44,15 @@ function formHtml(card, isNew) {
     <p class="hint info-hint"${info ? '' : ' hidden'}>${esc(t('card.info_hint'))}</p>
 
     <div class="field date-block"${info ? ' hidden' : ''}>
-      <span>${esc(t('card.date'))}</span>
+      <span class="f-date-label">${esc(t(series ? 'card.series_start' : 'card.date'))}</span>
       <div class="row">
         <input class="f-date" type="date" value="${esc(card.date || '')}"${noDate ? ' disabled' : ''}>
-        <input class="f-time" type="time" value="${esc(card.time || '')}"${noDate ? ' disabled' : ''}
-               title="${esc(t('card.time'))}">
+        <label class="time-wrap"><small>${esc(t('card.time_from'))}</small>
+          <input class="f-time" type="time" value="${esc(card.time || '')}"${noDate ? ' disabled' : ''}
+                 title="${esc(t('card.time'))}"></label>
+        <label class="time-wrap"><small>${esc(t('card.time_to'))}</small>
+          <input class="f-end" type="time" value="${esc(card.end || '')}"${noDate || !card.time ? ' disabled' : ''}
+                 title="${esc(t('card.end'))}"></label>
         <label class="check inline">
           <input class="f-nodate" type="checkbox"${noDate ? ' checked' : ''}>
           <span>${esc(t('card.nodate'))}</span>
@@ -93,14 +108,14 @@ function formHtml(card, isNew) {
       </label>
     </div>
 
-    <label class="field">
+    <div class="field">
       <span>${esc(t('card.body'))}</span>
-      <textarea class="f-body" rows="5" placeholder="${esc(t('card.body_ph'))}">${esc(card.body || '')}</textarea>
-    </label>
+      <div class="f-body"></div>
+    </div>
 
     <label class="check f-done-wrap${card.type === 'todo' ? '' : ' hidden'}">
-      <input class="f-done" type="checkbox"${card.done ? ' checked' : ''}>
-      <span>${esc(t('card.done'))}</span>
+      <input class="f-done" type="checkbox"${isDoneOn(card, occ) ? ' checked' : ''}>
+      <span class="f-done-label">${esc(series && occ ? t('card.done_on', { date: fmtDate(occ, true) }) : t('card.done'))}</span>
     </label>
 
     <p class="card-meta">
@@ -123,7 +138,7 @@ function commentsHtml(cardId) {
             <header><b>${esc(c.author || '—')}</b><time>${esc(fmtStamp(c.created))}</time>
               <button class="icon-btn c-del" title="${esc(t('card.delete'))}">✕</button>
             </header>
-            <div class="comment-body">${renderMarkdown(c.text)}</div>
+            <div class="comment-body md">${renderMarkdown(c.text)}</div>
           </article>`).join('')
           : `<p class="muted">${esc(t('comments.none'))}</p>`}
       </div>
@@ -136,12 +151,13 @@ function commentsHtml(cardId) {
 
 // ---------- the editor ----------
 
-function openEditor(card, { isNew = false } = {}) {
-  const draft = { ...card };
+function openEditor(card, { isNew = false, occ: openedAt = null } = {}) {
+  const draft = { ...card, doneOn: [...(card.doneOn || [])] };
+  let occ = openedAt;   // the iteration this editor is about (repeating cards)
   const m = openModal({
     title: isNew ? t('card.new') : t('card.edit'),
     size: 'wide',
-    body: formHtml(draft, isNew) + (isNew ? '' : commentsHtml(draft.id)),
+    body: formHtml(draft, isNew, occ) + (isNew ? '' : commentsHtml(draft.id)),
     footer: `
       ${isNew ? '' : `<button class="btn danger f-delete">${esc(t('card.delete'))}</button>`}
       ${isNew ? '' : (draft.archived
@@ -154,6 +170,7 @@ function openEditor(card, { isNew = false } = {}) {
   });
 
   const $ = s => m.body.querySelector(s);
+  const notes = createRichEditor($('.f-body'), draft.body || '', { placeholder: t('card.body_ph') });
   const err = $('.form-error');
   const showErr = msg => {
     err.textContent = msg;
@@ -186,6 +203,11 @@ function openEditor(card, { isNew = false } = {}) {
   });
 
   // --- date / no-date ---
+  const syncTime = () => {
+    const noStart = $('.f-time').disabled || !$('.f-time').value;
+    $('.f-end').disabled = noStart;
+    if (noStart) $('.f-end').value = '';
+  };
   const syncDate = () => {
     const noDate = $('.f-nodate').checked;
     $('.f-date').disabled = noDate;
@@ -194,22 +216,39 @@ function openEditor(card, { isNew = false } = {}) {
     $('.f-repeat-wrap').hidden = noDate;
     if (noDate) { $('.f-date').value = ''; $('.f-time').value = ''; }
     else if (!$('.f-date').value) $('.f-date').value = todayStr();
+    syncTime();
     syncNext();
   };
+  // Keeps everything that depends on the series rule in step: the "next on"
+  // hint, the labels, and which iteration the done box refers to. If an edit
+  // means the opened iteration no longer exists, the box moves to the next one.
   const syncNext = () => {
-    const rep = $('.f-repeat').value;
+    const rep = $('.f-nodate').checked || draft.type === 'info' ? '' : $('.f-repeat').value;
     m.body.querySelector('.until-wrap').classList.toggle('hidden', !rep);
     const d = $('.f-date').value;
+    const rule = { date: d, repeat: rep, until: $('.f-until').value || null };
     const hint = $('.f-next');
     if (rep && isDateStr(d)) {
-      const n = nextOccurrence({ date: d, repeat: rep, until: $('.f-until').value || null });
+      const n = nextOccurrence(rule);
       hint.textContent = n ? t('card.occurs_next', { date: fmtDateLong(n) }) : '—';
-    } else hint.textContent = '';
+      if (!occ || !isOccurrence(rule, occ)) {
+        occ = nextOccurrence(rule) || d;
+        $('.f-done').checked = draft.doneOn.includes(occ);
+      }
+    } else {
+      hint.textContent = '';
+    }
+    const series = !!rep && isDateStr(d);
+    $('.f-date-label').textContent = t(series ? 'card.series_start' : 'card.date');
+    $('.f-done-label').textContent = series && occ ? t('card.done_on', { date: fmtDate(occ, true) }) : t('card.done');
+    $('.occ-banner').hidden = !(series && occ && !isNew);
+    if (occ) $('.occ-text').textContent = t('card.occurrence', { date: fmtDateLong(occ) });
   };
   $('.f-nodate').addEventListener('change', syncDate);
   $('.f-repeat').addEventListener('change', syncNext);
   $('.f-date').addEventListener('change', syncNext);
   $('.f-until').addEventListener('change', syncNext);
+  $('.f-time').addEventListener('input', syncTime);
   syncNext();
 
   // --- comments ---
@@ -248,18 +287,31 @@ function openEditor(card, { isNew = false } = {}) {
       pinned: info && $('.f-pin').checked,
       date: noDate ? null : ($('.f-date').value || null),
       time: noDate ? null : ($('.f-time').value || null),
+      end: noDate ? null : ($('.f-end').value || null),
       list: noDate ? ($('.f-list').value || null) : null,
       repeat: noDate ? null : ($('.f-repeat').value || null),
       until: noDate ? null : ($('.f-until').value || null),
       urgency: info ? null : ($('.f-urgency').value || null),
       client: $('.f-client').value || null,
-      body: $('.f-body').value,
-      done: draft.type === 'todo' && $('.f-done').checked,
+      body: notes.getMarkdown(),
     };
     if (!out.repeat) out.until = null;
+    if (!out.time) out.end = null;
+    // the done box: the whole card for a one-off to-do, one iteration for a series
+    const ticked = draft.type === 'todo' && $('.f-done').checked;
+    if (out.repeat) {
+      const days = new Set(draft.doneOn);
+      if (occ) { if (ticked) days.add(occ); else days.delete(occ); }
+      out.doneOn = [...days].sort();
+      out.done = false;
+    } else {
+      out.done = ticked;
+      out.doneOn = [];
+    }
     if (!out.title) return { error: t('card.title_required') };
     if (!noDate && !isDateStr(out.date)) return { error: t('card.date_required') };
     if (noDate && !out.list) return { error: t('card.list_required') };
+    if (out.end && out.end <= out.time) return { error: t('card.end_before_start') };
     return { value: out };
   };
 
@@ -299,10 +351,14 @@ function openEditor(card, { isNew = false } = {}) {
   return m;
 }
 
-export function openCard(id) {
+// `date` is the iteration that was clicked. Without one (archive, search…) a
+// repeating card opens at its next iteration.
+export function openCard(id, date = null) {
   const card = store.cards[id];
   if (!card) return;
-  openEditor(card);
+  let occ = card.date || null;
+  if (card.repeat) occ = date && isOccurrence(card, date) ? date : effectiveDate(card);
+  openEditor(card, { occ });
 }
 
 // New card: the "who are you?" popup comes first, then the editor with the
@@ -311,8 +367,8 @@ export async function createCard(prefill = {}) {
   const who = await askWho('card');
   if (!who) return;
   const base = {
-    title: '', type: 'todo', date: null, time: null, list: null,
-    urgency: null, client: null, repeat: null, until: null, done: false,
+    title: '', type: 'todo', date: null, time: null, end: null, list: null,
+    urgency: null, client: null, repeat: null, until: null, done: false, doneOn: [],
     created: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
     author: who, body: '', ...prefill,
   };

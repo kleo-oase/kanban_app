@@ -1,0 +1,9 @@
+{
+  "name": "kanban-app",
+  "private": true,
+  "description": "Static kanban board over a git data repository. No dependencies and no build step — this file only marks the modules as ES modules for the test runner.",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run.js"
+  }
+}

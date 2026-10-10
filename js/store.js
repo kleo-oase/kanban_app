@@ -17,7 +17,7 @@ import {
   FALLBACK_CLIENT_COLORS, NO_CLIENT_COLOR,
   parseCardFile, serializeCard, cardPath,
   parseCommentFile, serializeComment, commentPath, commentKey,
-  parseConfig, serializeConfig, emptyConfig, emptyCard, normalizeCard,
+  parseConfig, serializeConfig, emptyConfig, emptyCard, normalizeCard, isDoneOn, isDateStr,
   slugify, uid, isoNow, lsGet, lsSet, lsDel, debounce,
 } from './util.js';
 
@@ -282,6 +282,9 @@ export const store = {
     this._fork = draft.fork || {
       cards: clone(this.base.cards), comments: clone(this.base.comments), config: clone(this.base.config),
     };
+    // a draft written by an older app version lacks the newer card fields
+    for (const c of Object.values(this.cards)) normalizeCard(c);
+    for (const c of Object.values(this._fork.cards || {})) normalizeCard(c);
     this._hasDraft = true;
   },
 
@@ -349,6 +352,29 @@ export const store = {
       if (this.comments[k].cardId === id) delete this.comments[k];
     }
     this.touch();
+  },
+
+  // ----- ticking to-dos -----
+  // `date` is the iteration being ticked; it only matters for repeating cards,
+  // where every iteration has its own tick (see normalizeCard).
+
+  setDone(id, date, done) {
+    const c = this.cards[id];
+    if (!c || c.type !== 'todo') return;
+    if (c.repeat) {
+      if (!isDateStr(date)) return;
+      const ticked = new Set(c.doneOn || []);
+      if (done) ticked.add(date); else ticked.delete(date);
+      c.doneOn = [...ticked].sort();
+    } else {
+      c.done = !!done;
+    }
+    this.touch('tick');
+  },
+
+  toggleDone(id, date) {
+    const c = this.cards[id];
+    if (c) this.setDone(id, date, !isDoneOn(c, date));
   },
 
   // ----- archive -----
@@ -599,8 +625,19 @@ export const store = {
     const report = { pulled: 0, conflicts: [] };
     const eq = (a, b) => (a ?? null) === (b ?? null);
     const sameCard = (a, b) => serializeCard(a) === serializeCard(b);
-    const FIELDS = ['title', 'type', 'date', 'time', 'list', 'urgency', 'client',
+    const FIELDS = ['title', 'type', 'date', 'time', 'end', 'list', 'urgency', 'client',
       'repeat', 'until', 'done', 'pinned', 'archived', 'created', 'author', 'body'];
+
+    // Ticks on a repeating to-do merge as a set, never as one value: two people
+    // ticking different days of the same series must both keep their tick. A
+    // date stays ticked unless one side unticked it and the other did not
+    // tick it again.
+    const mergeTicks = (f, l, r) => {
+      const F = new Set((f && f.doneOn) || []), L = new Set(l.doneOn || []), R = new Set(r.doneOn || []);
+      return [...new Set([...L, ...R])]
+        .filter(d => (L.has(d) && R.has(d)) || (L.has(d) && !F.has(d)) || (R.has(d) && !F.has(d)))
+        .sort();
+    };
 
     const mergedCards = {};
     const ids = new Set([
@@ -619,6 +656,10 @@ export const store = {
           else if (f && eq(r[k], f[k])) { /* only local changed — keep */ }
           else report.conflicts.push(`"${l.title || id}": ${k}`);           // both changed — local wins
         }
+        const ticks = mergeTicks(f, l, r);
+        if (ticks.join() !== (l.doneOn || []).join()) pulled = true;
+        out.doneOn = ticks;
+        normalizeCard(out);   // e.g. remote dropped the repetition while we ticked a day
         if (pulled) report.pulled++;
         mergedCards[id] = out;
       } else if (l && !r) {

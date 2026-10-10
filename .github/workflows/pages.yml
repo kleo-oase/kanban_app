@@ -47,12 +47,12 @@ jobs:
         run: |
           mkdir site
           cp -R main/* site/
-          rm -rf site/.github
+          rm -rf site/.github site/tests site/package.json
           touch site/.nojekyll
           if [ -f beta/index.html ]; then
             mkdir -p site/beta
             cp -R beta/* site/beta/
-            rm -rf site/beta/.github
+            rm -rf site/beta/.github site/beta/tests site/beta/package.json
           fi
 
       - uses: actions/upload-pages-artifact@v3
